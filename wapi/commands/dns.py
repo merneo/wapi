@@ -181,6 +181,109 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
         return 1
 
 
+def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
+    """Handle dns record update command"""
+    # Validate domain
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        return 1
+    
+    if not args.id:
+        print("Error: Record ID required (--id)", file=sys.stderr)
+        return 1
+    
+    # Build update data - WAPI uses dns-row-update command
+    update_data = {
+        "domain": args.domain,
+        "row_id": args.id
+    }
+    
+    # Add optional fields if provided
+    if args.name:
+        update_data["name"] = args.name
+    if args.type:
+        update_data["rdtype"] = args.type.upper()
+    if args.value:
+        update_data["rdata"] = args.value
+    if args.ttl:
+        update_data["ttl"] = args.ttl
+    
+    # Call API
+    result = client.call("dns-row-update", update_data)
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        print("✅ DNS record updated successfully")
+        print(format_output(response.get('data', {}), args.format))
+        return 0
+    elif code == '1001' or code == 1001:
+        print("⚠️  Operation started (asynchronous)")
+        if args.wait:
+            print("Waiting for completion...")
+            # Poll dns-rows-list until record is updated
+            record_id = args.id
+            expected_name = args.name
+            expected_type = args.type.upper() if args.type else None
+            expected_value = args.value
+            
+            def check_record_updated(poll_result: Dict[str, Any]) -> bool:
+                """Check if DNS record has been updated"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                if poll_code not in ['1000', 1000]:
+                    return False
+                
+                # Check if record exists with updated values
+                data = poll_response.get('data', {})
+                rows = data.get('row', [])
+                if not isinstance(rows, list):
+                    rows = [rows]
+                
+                for row in rows:
+                    if isinstance(row, dict) and str(row.get('ID', '')) == str(record_id):
+                        # Found the record, check if values match
+                        if expected_name and row.get('name', '') != expected_name:
+                            return False
+                        if expected_type and row.get('rdtype', '').upper() != expected_type:
+                            return False
+                        if expected_value and row.get('rdata', '') != expected_value:
+                            return False
+                        return True  # Record found and matches
+                return False  # Record not found
+            
+            # Poll dns-rows-list
+            final_result = client.poll_until_complete(
+                "dns-rows-list",
+                {"domain": args.domain},
+                is_complete=check_record_updated,
+                max_attempts=60,
+                interval=10,
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                print("✅ DNS record updated successfully")
+                print(format_output(final_response, args.format))
+                return 0
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                return 0
+        else:
+            print(format_output(response, args.format))
+            return 0
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        return 1
+
+
 def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
     """Handle dns record delete command"""
     # Validate domain

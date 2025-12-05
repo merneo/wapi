@@ -59,6 +59,7 @@ def cmd_ping(args, client: WedosAPIClient):
 # Import command handlers
 from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
 from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
+from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
 
 
 def main():
@@ -188,6 +189,16 @@ def main():
     dns_record_add_parser.add_argument('--ttl', type=int, default=3600, help='TTL in seconds (default: 3600)')
     dns_record_add_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
     dns_record_add_parser.set_defaults(func=cmd_dns_record_add)
+    
+    dns_record_update_parser = dns_subparsers.add_parser('update', help='Update DNS record')
+    dns_record_update_parser.add_argument('domain', help='Domain name')
+    dns_record_update_parser.add_argument('--id', required=True, help='Record ID (from dns records list)')
+    dns_record_update_parser.add_argument('--name', help='Record name (e.g., @, www)')
+    dns_record_update_parser.add_argument('--type', help='Record type (A, AAAA, MX, CNAME, TXT, etc.)')
+    dns_record_update_parser.add_argument('--value', help='Record value/data')
+    dns_record_update_parser.add_argument('--ttl', type=int, help='TTL in seconds')
+    dns_record_update_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    dns_record_update_parser.set_defaults(func=cmd_dns_record_update)
     
     dns_record_delete_parser = dns_subparsers.add_parser('delete', help='Delete DNS record')
     dns_record_delete_parser.add_argument('domain', help='Domain name')

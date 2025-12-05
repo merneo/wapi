@@ -295,6 +295,12 @@ NSSET: NS-EXAMPLE-COM-1234567890
 
 **Note:** This example uses RFC 1918 private IP addresses (192.0.2.0/24) and RFC 3849 documentation IPv6 addresses (2001:db8::/32) as per [RFC 5737](https://tools.ietf.org/html/rfc5737) and [RFC 3849](https://tools.ietf.org/html/rfc3849).
 
+**Important Notes:**
+- Nameservers may not have IP addresses if they are external nameservers (e.g., Cloudflare, AWS Route 53)
+- In such cases, `addr_ipv4` and `addr_ipv6` fields will be empty strings
+- NSSET names may follow different patterns (e.g., `WEDOS-A3W-XXXXXX` for automatically assigned NSSETs)
+- Domain information includes many fields; sensitive personal data should be filtered in production applications
+
 ---
 
 ## Command-Line Tools

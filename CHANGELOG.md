@@ -79,6 +79,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sensitive data filtering verified
 - Domain structure analyzed and documented
 
+## [0.5.0] - 2025-01-05
+
+### Added
+- Phase 5: NSSET module
+  - `wapi/commands/nsset.py` - NSSET command handlers
+  - `wapi nsset create <name>` - Create new NSSET with nameservers
+    - `--nameserver <ns>` - Nameserver (can be used multiple times)
+    - `--tld <tld>` - Top-level domain (default: cz)
+    - `--tech-c <handle>` - Technical contact handle
+    - `--wait` - Wait for async completion
+  - `wapi nsset info <name>` - Get NSSET information
+  - `wapi nsset list` - List NSSETs (stub for future implementation)
+
+### Changed
+- Removed all references to armlab.cz
+- Use spravuju.cz for CZ domain testing
+- Use linuxloser.com for COM domain testing
+
+### Tested
+- NSSET info tested with spravuju.cz NSSET - working correctly
+- NSSET structure analyzed and documented
+
 ## [0.1.0] - 2025-01-05
 
 ### Added

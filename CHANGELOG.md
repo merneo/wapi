@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
+- Contact list implementation
+- NSSET list implementation
+- Domain list implementation
+- DNS record update operation
+- Async operation polling (--wait flag)
+
+## [0.6.0] - 2025-01-05
+
+### Added
+- Phase 6: Additional modules
+  - `wapi/commands/contact.py` - Contact management
+    - `wapi contact info <handle>` - Get contact information with sensitive data filtering
+    - `wapi contact list` - List contacts (stub)
+  - `wapi/commands/config.py` - Configuration management
+    - `wapi config show` - Show configuration (passwords hidden)
+    - `wapi config validate` - Validate configuration
+    - `wapi config set <key> <value>` - Set configuration value
+  - `wapi/commands/dns.py` - DNS management
+    - `wapi dns list <domain>` - List nameservers for domain
+    - `wapi dns records <domain>` - List DNS records (stub)
+    - `wapi dns add/delete` - DNS record operations (stubs)
+
+### Tested
+- Contact info tested with FORPSI-VVN-S638343 - working correctly
+- Config commands tested - working correctly
+- DNS list tested with spravuju.cz - working correctly
+- All sensitive data filtered from outputs
 - Phase 4: Domain module
 - Phase 5: NSSET module
 - Phase 6: Additional modules (contact, config, dns)

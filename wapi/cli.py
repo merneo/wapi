@@ -174,12 +174,23 @@ def main():
     dns_record_list_parser.add_argument('domain', help='Domain name')
     dns_record_list_parser.set_defaults(func=cmd_dns_record_list)
     
+    dns_record_list_alias = dns_subparsers.add_parser('list-records', help='List DNS records (alias)')
+    dns_record_list_alias.add_argument('domain', help='Domain name')
+    dns_record_list_alias.set_defaults(func=cmd_dns_record_list)
+    
     dns_record_add_parser = dns_subparsers.add_parser('add', help='Add DNS record')
     dns_record_add_parser.add_argument('domain', help='Domain name')
+    dns_record_add_parser.add_argument('--name', default='@', help='Record name (default: @)')
+    dns_record_add_parser.add_argument('--type', required=True, help='Record type (A, AAAA, MX, CNAME, TXT, etc.)')
+    dns_record_add_parser.add_argument('--value', required=True, help='Record value/data')
+    dns_record_add_parser.add_argument('--ttl', type=int, default=3600, help='TTL in seconds (default: 3600)')
+    dns_record_add_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
     dns_record_add_parser.set_defaults(func=cmd_dns_record_add)
     
     dns_record_delete_parser = dns_subparsers.add_parser('delete', help='Delete DNS record')
     dns_record_delete_parser.add_argument('domain', help='Domain name')
+    dns_record_delete_parser.add_argument('--id', required=True, help='Record ID (from dns records list)')
+    dns_record_delete_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
     dns_record_delete_parser.set_defaults(func=cmd_dns_record_delete)
     
     # Parse arguments

@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### In Progress
-- Phase 5: NSSET module
-
 ### Planned
 - Phase 4: Domain module
 - Phase 5: NSSET module

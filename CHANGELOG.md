@@ -8,13 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Phase 0: Project setup and foundation
-- Phase 1: Configuration and authentication
-- Phase 2: API client core
-- Phase 3: CLI framework and simple commands
 - Phase 4: Domain module
 - Phase 5: NSSET module
 - Phase 6: Additional modules (contact, config, dns)
+
+## [0.2.0] - 2025-01-05
+
+### Added
+- Phase 1: Configuration and authentication modules
+  - `wapi/config.py` - Configuration loading from file and environment variables
+  - `wapi/api/auth.py` - Authentication hash calculation with Prague timezone
+  - `wapi/utils/validators.py` - Input validation (domain, IP, nameserver)
+- Phase 2: API client core
+  - `wapi/api/client.py` - Core WEDOS API client with XML/JSON support
+  - `WedosAPIClient` class with `ping()` and `domain_info()` methods
+  - XML response parsing with proper structure handling
+
+### Fixed
+- XML parser to correctly handle root `<response>` element
+- Type hints compatibility (Tuple instead of tuple)
+- Pytz import fallback for systems without pytz
+
+### Tested
+- All modules tested with production WAPI
+- Domain info tested with armlab.cz domain
+- Ping command verified working
+
+## [0.1.0] - 2025-01-05
+
+### Added
+- Phase 0: Project setup and foundation
+  - Package structure (wapi/, wapi/api/, wapi/commands/, wapi/utils/, tests/)
+  - `wapi/__init__.py` with version information
+  - `setup.py` with entry point configuration
+  - `requirements.txt` with dependencies
 
 ### Implementation Phases
 See `IMPLEMENTATION_PHASES.md` for detailed phase-by-phase implementation plan ordered by complexity.

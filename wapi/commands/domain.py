@@ -37,16 +37,44 @@ def filter_sensitive_domain_data(domain: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def cmd_domain_list(args, client: WedosAPIClient) -> int:
-    """
-    Handle domain list command.
+    """Handle domain list command"""
+    # WAPI uses 'domains-list' command
+    result = client.call("domains-list", {})
+    response = result.get('response', {})
+    code = response.get('code')
     
-    Note: WAPI may not have a direct 'domain-list' command.
-    This would need to be implemented based on available WAPI commands.
-    """
-    # TODO: Implement domain list when WAPI command is available
-    print("Error: Domain list command not yet implemented", file=sys.stderr)
-    print("WAPI may require a different command for listing domains", file=sys.stderr)
-    return 1
+    if code == '1000' or code == 1000:
+        data = response.get('data', {})
+        domains = data.get('domain', [])
+        
+        if not isinstance(domains, list):
+            domains = [domains]
+        
+        # Format domains
+        domain_list = []
+        for domain in domains:
+            if isinstance(domain, dict):
+                domain_list.append({
+                    'name': domain.get('name', ''),
+                    'status': domain.get('status', ''),
+                    'expiration': domain.get('expiration', ''),
+                    'nsset': domain.get('nsset', '')
+                })
+        
+        # Filter by TLD if specified
+        if hasattr(args, 'tld') and args.tld:
+            domain_list = [d for d in domain_list if d['name'].endswith(f'.{args.tld}')]
+        
+        # Filter by status if specified
+        if hasattr(args, 'status') and args.status:
+            domain_list = [d for d in domain_list if d['status'] == args.status]
+        
+        print(format_output(domain_list, args.format, headers=['name', 'status', 'expiration', 'nsset']))
+        return 0
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        return 1
 
 
 def cmd_domain_info(args, client: WedosAPIClient) -> int:

@@ -95,6 +95,8 @@ def main():
     info_parser.set_defaults(func=cmd_domain_info)
     
     list_parser = domain_subparsers.add_parser('list', aliases=['-l'], help='List domains')
+    list_parser.add_argument('--tld', help='Filter by TLD (e.g., cz, com)')
+    list_parser.add_argument('--status', help='Filter by status (e.g., ok, expired)')
     list_parser.set_defaults(func=cmd_domain_list)
     
     update_ns_parser = domain_subparsers.add_parser('update-ns', help='Update domain nameservers')

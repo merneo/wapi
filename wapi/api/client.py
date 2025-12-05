@@ -180,6 +180,71 @@ class WedosAPIClient:
         """
         return self.call("domain-info", {"name": domain_name})
     
+    def domain_update_ns(self, domain_name: str, nsset_name: Optional[str] = None, 
+                        nameservers: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """
+        Update domain nameservers
+        
+        Args:
+            domain_name: Domain name
+            nsset_name: Name of existing NSSET to assign
+            nameservers: List of nameserver dictionaries (creates new NSSET if provided)
+            
+        Returns:
+            Dictionary with API response
+        """
+        if nsset_name:
+            # Use existing NSSET
+            data = {
+                "name": domain_name,
+                "nsset": nsset_name
+            }
+            return self.call("domain-update-ns", data)
+        elif nameservers:
+            # Create new NSSET and assign it
+            import time
+            nsset_name = f"NS-{domain_name.replace('.', '-').upper()}-{int(time.time())}"
+            
+            # Get tech_c from domain info if available
+            domain_info = self.domain_info(domain_name)
+            tech_c = None
+            if domain_info.get("response", {}).get("code") in ["1000", 1000]:
+                domain_data = domain_info.get("response", {}).get("data", {}).get("domain", {})
+                tech_c = domain_data.get("owner_c")
+            
+            # Create NSSET
+            nsset_data = {
+                "tld": domain_name.split('.')[-1] if '.' in domain_name else "cz",
+                "name": nsset_name,
+                "dns": {
+                    "server": nameservers
+                }
+            }
+            if tech_c:
+                nsset_data["tech_c"] = tech_c
+            
+            create_result = self.call("nsset-create", nsset_data)
+            
+            if create_result.get("response", {}).get("code") not in ["1000", 1000]:
+                return create_result
+            
+            # Get actual NSSET name from response
+            created_nsset = create_result.get("response", {}).get("data", {}).get("nsset", nsset_name)
+            
+            # Assign NSSET to domain
+            data = {
+                "name": domain_name,
+                "nsset": created_nsset
+            }
+            return self.call("domain-update-ns", data)
+        else:
+            return {
+                "response": {
+                    "code": "2100",
+                    "result": "Either nsset_name or nameservers must be provided"
+                }
+            }
+    
     def ping(self) -> Dict[str, Any]:
         """
         Test API connection

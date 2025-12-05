@@ -51,9 +51,42 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
-            # TODO: Implement polling
-        print(format_output(response, args.format))
-        return 0
+            # Poll nsset-info until NSSET is created
+            def check_nsset_created(poll_result: Dict[str, Any]) -> bool:
+                """Check if NSSET has been created"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                # If we can get NSSET info successfully, it's created
+                return poll_code in ['1000', 1000]
+            
+            # Determine TLD for polling
+            tld = args.tld or "cz"
+            
+            # Poll nsset-info
+            final_result = client.poll_until_complete(
+                "nsset-info",
+                {"name": args.name, "tld": tld},
+                is_complete=check_nsset_created,
+                max_attempts=60,
+                interval=10,
+                verbose=not args.quiet if hasattr(args, 'quiet') else True
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                print("✅ NSSET created successfully")
+                print(format_output(final_response, args.format))
+                return 0
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                return 0
+        else:
+            print(format_output(response, args.format))
+            return 0
     else:
         error_msg = response.get('result', 'Unknown error')
         print(f"Error ({code}): {error_msg}", file=sys.stderr)

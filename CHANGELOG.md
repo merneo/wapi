@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
+## [0.7.0] - 2025-01-05
+
+### Added
+- **Async Polling Support**: Implemented `poll_until_complete` method in `WedosAPIClient`
+- **Polling for Domain Update**: `wapi domain update-ns --wait` now polls until nameservers are updated
+- **Polling for NSSET Create**: `wapi nsset create --wait` now polls until NSSET is created
+- **Polling for DNS Add**: `wapi dns add --wait` now polls until DNS record is added
+- **Polling for DNS Delete**: `wapi dns delete --wait` now polls until DNS record is deleted
+- Progress indicators during polling (when not in quiet mode)
+- Timeout handling (default: 60 attempts × 10 seconds = 10 minutes)
+
+### Changed
+- `--wait` flag now actually waits for async operations to complete
+- Polling uses appropriate check commands (`domain-info`, `nsset-info`, `dns-rows-list`)
+- Improved async operation handling with proper status checking
+
+### Technical Details
+- Added `poll_until_complete()` method to `WedosAPIClient` class
+- Custom completion check functions for each operation type
+- Configurable polling parameters (max_attempts, interval)
+- Verbose mode support for polling progress
+
+## [0.6.0] - 2025-01-05
 - Contact list implementation
 - NSSET list implementation
 - DNS record update operation

@@ -115,10 +115,16 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     
+    # Store options for polling
+    nsset_name = None
+    nameservers = None
+    source_domain = None
+    
     # Handle different options
     if args.nsset:
         # Use existing NSSET
-        result = client.domain_update_ns(args.domain, nsset_name=args.nsset)
+        nsset_name = args.nsset
+        result = client.domain_update_ns(args.domain, nsset_name=nsset_name)
     elif args.nameserver:
         # Parse nameservers
         nameservers = []
@@ -174,6 +180,7 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                     'addr_ipv6': server.get('addr_ipv6', '')
                 })
         
+        source_domain = args.source_domain
         result = client.domain_update_ns(args.domain, nameservers=nameservers)
     else:
         print("Error: Must specify --nsset, --nameserver, or --source-domain", file=sys.stderr)
@@ -191,9 +198,66 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
-            # TODO: Implement polling
-        print(format_output(response, args.format))
-        return 0
+            # Poll domain-info until nameservers are updated
+            def check_domain_updated(poll_result: Dict[str, Any]) -> bool:
+                """Check if domain nameservers have been updated"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                if poll_code not in ['1000', 1000]:
+                    return False
+                
+                # Get current domain info
+                domain_data = poll_response.get('data', {}).get('domain', {})
+                current_nsset = domain_data.get('nsset', '')
+                
+                # Check if NSSET matches what we tried to set
+                if nsset_name:
+                    return current_nsset == nsset_name
+                elif nameservers:
+                    # For new nameservers, check if domain has any NSSET assigned
+                    return bool(current_nsset)
+                elif source_domain:
+                    # For source domain copy, check if nameservers match
+                    source_result = client.domain_info(source_domain)
+                    if source_result.get('response', {}).get('code') in ['1000', 1000]:
+                        source_domain_data = source_result.get('response', {}).get('data', {}).get('domain', {})
+                        source_dns = source_domain_data.get('dns', {})
+                        target_dns = domain_data.get('dns', {})
+                        if isinstance(source_dns, dict) and isinstance(target_dns, dict):
+                            source_servers = source_dns.get('server', [])
+                            target_servers = target_dns.get('server', [])
+                            if isinstance(source_servers, list) and isinstance(target_servers, list):
+                                # Compare server names
+                                source_names = {s.get('name') for s in source_servers if isinstance(s, dict)}
+                                target_names = {s.get('name') for s in target_servers if isinstance(s, dict)}
+                                return source_names == target_names
+                return False
+            
+            # Poll domain-info
+            final_result = client.poll_until_complete(
+                "domain-info",
+                {"name": args.domain},
+                is_complete=check_domain_updated,
+                max_attempts=60,
+                interval=10,
+                verbose=not args.quiet
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                print("✅ Nameservers updated successfully")
+                print(format_output(final_response, args.format))
+                return 0
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                return 0
+        else:
+            print(format_output(response, args.format))
+            return 0
     else:
         error_msg = response.get('result', 'Unknown error')
         print(f"Error ({code}): {error_msg}", file=sys.stderr)

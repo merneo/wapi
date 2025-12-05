@@ -9,8 +9,9 @@ import requests
 import hashlib
 import xml.etree.ElementTree as ET
 import json
+import time
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Callable
 from .auth import calculate_auth
 
 
@@ -253,3 +254,71 @@ class WedosAPIClient:
             Dictionary with ping response
         """
         return self.call("ping", {})
+    
+    def poll_until_complete(
+        self,
+        check_command: str,
+        check_data: Dict[str, Any],
+        is_complete: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        max_attempts: int = 60,
+        interval: int = 10,
+        verbose: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Poll API until operation completes
+        
+        Args:
+            check_command: Command to poll (e.g., "domain-info", "nsset-info")
+            check_data: Data dictionary for check command
+            is_complete: Optional function to check if operation is complete.
+                        Takes response dict, returns True if complete.
+                        If None, checks for code 1000.
+            max_attempts: Maximum polling attempts (default: 60)
+            interval: Seconds between attempts (default: 10)
+            verbose: Print progress messages (default: False)
+            
+        Returns:
+            Final status response or timeout error
+        """
+        for attempt in range(1, max_attempts + 1):
+            if verbose:
+                print(f"  Polling attempt {attempt}/{max_attempts}...", end='', flush=True)
+            
+            result = self.call(check_command, check_data)
+            response = result.get('response', {})
+            code = response.get('code')
+            
+            # Check if complete
+            if is_complete:
+                if is_complete(result):
+                    if verbose:
+                        print(" ✅ Complete!")
+                    return result
+            else:
+                # Default: check for code 1000 (success)
+                if code == '1000' or code == 1000:
+                    if verbose:
+                        print(" ✅ Complete!")
+                    return result
+            
+            # Check for error (not async, but actual error)
+            if code and str(code).startswith('2'):
+                # Error code (2xxx), not async
+                if verbose:
+                    print(f" ❌ Error: {response.get('result', 'Unknown error')}")
+                return result
+            
+            if verbose:
+                print(" ⏳ Still processing...")
+            
+            # Wait before next attempt
+            if attempt < max_attempts:
+                time.sleep(interval)
+        
+        # Timeout
+        return {
+            "response": {
+                "code": "9998",
+                "result": f"Polling timeout after {max_attempts} attempts ({max_attempts * interval} seconds)"
+            }
+        }

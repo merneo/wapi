@@ -124,9 +124,57 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
-            # TODO: Implement polling
-        print(format_output(response, args.format))
-        return 0
+            # Poll dns-rows-list until record appears
+            record_name = args.name or "@"
+            record_type = args.type.upper()
+            record_value = args.value
+            
+            def check_record_added(poll_result: Dict[str, Any]) -> bool:
+                """Check if DNS record has been added"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                if poll_code not in ['1000', 1000]:
+                    return False
+                
+                # Check if record exists in list
+                data = poll_response.get('data', {})
+                rows = data.get('row', [])
+                if not isinstance(rows, list):
+                    rows = [rows]
+                
+                for row in rows:
+                    if isinstance(row, dict):
+                        if (row.get('name', '') == record_name and
+                            row.get('rdtype', '').upper() == record_type and
+                            row.get('rdata', '') == record_value):
+                            return True
+                return False
+            
+            # Poll dns-rows-list
+            final_result = client.poll_until_complete(
+                "dns-rows-list",
+                {"domain": args.domain},
+                is_complete=check_record_added,
+                max_attempts=60,
+                interval=10,
+                verbose=not args.quiet if hasattr(args, 'quiet') else True
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                print("✅ DNS record added successfully")
+                print(format_output(final_response, args.format))
+                return 0
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                return 0
+        else:
+            print(format_output(response, args.format))
+            return 0
     else:
         error_msg = response.get('result', 'Unknown error')
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
@@ -163,8 +211,50 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
-            # TODO: Implement polling
-        return 0
+            # Poll dns-rows-list until record is deleted
+            record_id = args.id
+            
+            def check_record_deleted(poll_result: Dict[str, Any]) -> bool:
+                """Check if DNS record has been deleted"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                if poll_code not in ['1000', 1000]:
+                    return False
+                
+                # Check if record no longer exists in list
+                data = poll_response.get('data', {})
+                rows = data.get('row', [])
+                if not isinstance(rows, list):
+                    rows = [rows]
+                
+                for row in rows:
+                    if isinstance(row, dict):
+                        if str(row.get('ID', '')) == str(record_id):
+                            return False  # Still exists
+                return True  # Record not found, deleted
+            
+            # Poll dns-rows-list
+            final_result = client.poll_until_complete(
+                "dns-rows-list",
+                {"domain": args.domain},
+                is_complete=check_record_deleted,
+                max_attempts=60,
+                interval=10,
+                verbose=not args.quiet if hasattr(args, 'quiet') else True
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                print("✅ DNS record deleted successfully")
+                return 0
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                return 0
+        else:
+            return 0
     else:
         error_msg = response.get('result', 'Unknown error')
         print(f"Error ({code}): {error_msg}", file=sys.stderr)

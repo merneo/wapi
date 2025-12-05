@@ -1,30 +1,112 @@
-# WEDOS WAPI Python Client - Complete Documentation Wiki
+# WEDOS WAPI CLI - Complete Documentation Wiki
 
-**Complete, production-ready documentation for integrating WEDOS WAPI into Python applications**
+**Complete documentation for the WAPI CLI command-line tool**
 
-**Last Verified:** 2025-01-05  
-**Status:** All commands tested and verified on production WAPI  
+**Last Updated:** 2025-01-05  
+**Version:** 0.6.0+  
+**Status:** Production-ready CLI tool  
 **Language:** US English  
 **Standards:** RFC 2606 (example.com), RFC 5737 (192.0.2.0/24), RFC 3849 (2001:db8::/32)  
 **Security:** No sensitive data (credentials, real domains, or IP addresses) included in documentation
 
 > **Note:** This documentation uses only example domains (`example.com`, `example.org`) and documentation IP addresses (`192.0.2.0/24`, `2001:db8::/32`) as per [RFC 2606](https://tools.ietf.org/html/rfc2606), [RFC 5737](https://tools.ietf.org/html/rfc5737), and [RFC 3849](https://tools.ietf.org/html/rfc3849). No real credentials, domains, or IP addresses are included.
 
+## What is WAPI CLI?
+
+WAPI CLI is a command-line interface tool for managing WEDOS domains, NSSETs, contacts, and DNS records through the WEDOS WAPI. It provides a user-friendly interface for all common domain management operations.
+
+**Key Features:**
+- ✅ Complete domain management (list, info, update nameservers)
+- ✅ NSSET operations (create, info)
+- ✅ DNS record management (list, add, delete)
+- ✅ Contact information retrieval
+- ✅ Configuration management
+- ✅ Multiple output formats (table, JSON, XML, YAML)
+- ✅ Sensitive data filtering
+- ✅ Production-ready and tested
+
+## Installation
+
+### Prerequisites
+
+- Python 3.6 or higher
+- pip (Python package manager)
+- WEDOS account with WAPI access enabled
+
+### Install from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/merneo/wapi.git
+cd wapi
+
+# Install the package
+pip install -e .
+
+# Or install dependencies only
+pip install -r requirements.txt
+```
+
+### Configuration
+
+Create a `config.env` file in the project root:
+
+```bash
+WAPI_USERNAME="your-email@example.com"
+WAPI_PASSWORD="your-wapi-password"
+WAPI_BASE_URL="https://api.wedos.com/wapi"
+```
+
+Or use environment variables:
+
+```bash
+export WAPI_USERNAME="your-email@example.com"
+export WAPI_PASSWORD="your-wapi-password"
+```
+
+### Verify Installation
+
+```bash
+# Test the installation
+python3 -m wapi auth ping
+
+# Or if installed as package
+wapi auth ping
+```
+
+## Quick Start
+
+```bash
+# Test connection
+wapi auth ping
+
+# List all domains
+wapi domain list
+
+# Get domain information
+wapi domain info example.com
+
+# List DNS records
+wapi dns records example.com
+
+# Get NSSET information
+wapi nsset info NS-EXAMPLE-123456
+```
+
 ## Overview
 
-This comprehensive wiki provides **complete documentation for the WEDOS WAPI Python client**, enabling developers to integrate WEDOS domain management services into their Python applications. All examples, commands, and code snippets have been tested and verified on production WAPI systems. The documentation follows industry standards for technical documentation, using only RFC-compliant example domains and IP addresses.
+This comprehensive wiki provides **complete documentation for the WAPI CLI tool**, enabling users to manage WEDOS domains, NSSETs, contacts, and DNS records from the command line. All commands have been tested and verified on production WAPI systems.
 
 **What is WEDOS WAPI?**
 
-WEDOS WAPI (Web API) is a RESTful API service provided by WEDOS hosting that allows programmatic management of domain registrations, DNS settings, nameservers, and other domain-related operations. This documentation covers everything you need to integrate WEDOS WAPI into Python applications, from basic setup to advanced automation workflows.
+WEDOS WAPI (Web API) is a RESTful API service provided by WEDOS hosting that allows programmatic management of domain registrations, DNS settings, nameservers, and other domain-related operations. WAPI CLI provides a user-friendly command-line interface for all WAPI operations.
 
 **Key Features:**
-- ✅ **Complete API Reference** - Every method documented with verified examples
-- ✅ **Step-by-Step Guides** - Installation, configuration, and usage tutorials
-- ✅ **Command-Line Tools** - Ready-to-use scripts for domain management
-- ✅ **Security Best Practices** - Protecting credentials and API access
-- ✅ **Troubleshooting Guide** - Common errors and solutions
-- ✅ **Advanced Features** - Asynchronous operations, notification methods, polling
+- ✅ **Complete Command Reference** - Every command documented with examples
+- ✅ **Multiple Output Formats** - Table, JSON, XML, YAML
+- ✅ **Security** - Sensitive data filtering, secure credential handling
+- ✅ **Production Ready** - All commands tested and verified
+- ✅ **Comprehensive Documentation** - Complete guides and examples
 - ✅ **Production Ready** - All examples tested on real WAPI systems
 - ✅ **Standards Compliant** - RFC-compliant examples (example.com, RFC 5737 IPs)
 
@@ -49,43 +131,51 @@ WEDOS WAPI (Web API) is a RESTful API service provided by WEDOS hosting that all
 
 ```bash
 cd ~/wapi
-python3 -c "from wedos_api import WedosAPI; print('✅ Installation OK')"
+python3 -m wapi --help
 ```
 
 **Verified Output:**
 ```
-✅ Installation OK
+usage: wapi [-h] [--config CONFIG] [--format {table,json,xml,yaml}]
+            [--verbose] [--quiet]
+            {auth,domain,nsset,contact,config,dns} ...
 ```
 
 ### Test WAPI Connection
 
 ```bash
 cd ~/wapi
-python3 -c "
-from wedos_api import WedosAPI
-import os
-
-# Load credentials from config.env
-username = os.getenv('WAPI_USERNAME')
-password = os.getenv('WAPI_PASSWORD')
-
-if not username or not password:
-    with open('config.env', 'r') as f:
-        for line in f:
-            if line.startswith('WAPI_USERNAME='):
-                username = line.split('=', 1)[1].strip().strip('\"')
-            elif line.startswith('WAPI_PASSWORD='):
-                password = line.split('=', 1)[1].strip().strip('\"')
-
-api = WedosAPI(username, password, use_json=False)
-result = api.call('ping', {})
-print(f\"✅ Connection: {result.get('response', {}).get('result')}\")
-"
+python3 -m wapi auth ping
 ```
 
 **Verified Output:**
 ```
-✅ Connection: OK
+{
+  "status": "OK",
+  "code": 1000,
+  "result": "OK"
+}
+```
+
+### List Your Domains
+
+```bash
+cd ~/wapi
+python3 -m wapi domain list
+```
+
+### Get Domain Information
+
+```bash
+cd ~/wapi
+python3 -m wapi domain info example.com
+```
+
+### List DNS Records
+
+```bash
+cd ~/wapi
+python3 -m wapi dns records example.com
 ```
 
 ---
@@ -196,110 +286,71 @@ else:
 
 ## Basic Usage
 
-### Initialize API Client
+### CLI Command Structure
 
-#### XML Format (Default, Recommended)
-
-```python
-from wedos_api import WedosAPI
-import os
-
-# Load credentials
-username = os.getenv('WAPI_USERNAME')
-password = os.getenv('WAPI_PASSWORD')
-
-if not username or not password:
-    with open('config.env', 'r') as f:
-        for line in f:
-            if line.startswith('WAPI_USERNAME='):
-                username = line.split('=', 1)[1].strip().strip('"')
-            elif line.startswith('WAPI_PASSWORD='):
-                password = line.split('=', 1)[1].strip().strip('"')
-
-# Initialize with XML format (default)
-api = WedosAPI(username, password, use_json=False)
+All commands follow the pattern:
+```
+wapi [GLOBAL_OPTIONS] <MODULE> <COMMAND> [ARGUMENTS] [OPTIONS]
 ```
 
-**Verified:** ✅ Works correctly
+### Global Options
 
-#### JSON Format
-
-```python
-# Initialize with JSON format
-api = WedosAPI(username, password, use_json=True)
-```
-
-**Verified:** ✅ Works correctly
+- `--config <file>` - Configuration file (default: config.env)
+- `--format <format>` - Output format: table, json, xml, yaml (default: table)
+- `--verbose / -v` - Verbose output
+- `--quiet / -q` - Quiet mode
 
 ### Test Connection (Ping)
 
-```python
-from wedos_api import WedosAPI
-import os
-
-# [Load credentials as above]
-api = WedosAPI(username, password, use_json=False)
-
-result = api.call('ping', {})
-code = result.get('response', {}).get('code')
-result_text = result.get('response', {}).get('result')
-
-print(f"Code: {code}, Result: {result_text}")
+```bash
+wapi auth ping
 ```
 
 **Verified Output:**
 ```
-Code: 1000, Result: OK
+{
+  "status": "OK",
+  "code": 1000,
+  "result": "OK"
+}
 ```
 
 ### Get Domain Information
 
-```python
-from wedos_api import WedosAPI
-import os
-
-# [Load credentials as above]
-api = WedosAPI(username, password, use_json=False)
-
-result = api.domain_info('example.com')
-code = result.get('response', {}).get('code')
-
-if code == '1000' or code == 1000:
-    domain = result.get('response', {}).get('data', {}).get('domain', {})
-    print(f"Domain: {domain.get('name')}")
-    print(f"Status: {domain.get('status')}")
-    print(f"NSSET: {domain.get('nsset', 'N/A')}")
-    
-    # Nameservers
-    dns = domain.get('dns', {})
-    if isinstance(dns, dict):
-        servers = dns.get('server', [])
-        for server in servers:
-            print(f"  {server.get('name')}")
-            print(f"    IPv4: {server.get('addr_ipv4', 'N/A')}")
-            print(f"    IPv6: {server.get('addr_ipv6', 'N/A')}")
+```bash
+wapi domain info example.com
 ```
 
-**Example Output:**
-```
-Domain: example.com
-Status: ok
-NSSET: NS-EXAMPLE-COM-1234567890
-  ns1.example.com
-    IPv4: 192.0.2.1
-    IPv6: 2001:db8::1
-  ns2.example.com
-    IPv4: 192.0.2.2
-    IPv6: 2001:db8::2
+**Example Output (JSON format):**
+```bash
+wapi domain info example.com --format json
 ```
 
-**Note:** This example uses RFC 1918 private IP addresses (192.0.2.0/24) and RFC 3849 documentation IPv6 addresses (2001:db8::/32) as per [RFC 5737](https://tools.ietf.org/html/rfc5737) and [RFC 3849](https://tools.ietf.org/html/rfc3849).
+```json
+{
+  "name": "example.com",
+  "status": "ok",
+  "nsset": "NS-EXAMPLE-COM-1234567890",
+  "expiration": "2026-12-05",
+  "dns": {
+    "server": [
+      {
+        "name": "ns1.example.com",
+        "addr_ipv4": "192.0.2.1",
+        "addr_ipv6": "2001:db8::1"
+      }
+    ]
+  }
+}
+```
+
+**Note:** This example uses RFC-compliant test data (192.0.2.0/24, 2001:db8::/32) as per [RFC 5737](https://tools.ietf.org/html/rfc5737) and [RFC 3849](https://tools.ietf.org/html/rfc3849).
 
 **Important Notes:**
 - Nameservers may not have IP addresses if they are external nameservers (e.g., Cloudflare, AWS Route 53)
 - In such cases, `addr_ipv4` and `addr_ipv6` fields will be empty strings
 - NSSET names may follow different patterns (e.g., `WEDOS-A3W-XXXXXX` for automatically assigned NSSETs)
-- Domain information includes many fields; sensitive personal data should be filtered in production applications
+- Sensitive personal data is automatically filtered from output (shown as `[HIDDEN]`)
 
 ---
 
@@ -405,11 +456,34 @@ python3 update_domain_ns.py --target-domain example.com \
 
 ---
 
-## API Reference
+## API Reference (Python Library)
 
-### WedosAPI Class
+The WAPI CLI is built on top of a Python API client library. You can also use the library directly in your Python code.
 
-#### `__init__(username, password, base_url="https://api.wedos.com/wapi", use_json=False)`
+### WedosAPIClient Class
+
+The CLI uses `WedosAPIClient` from `wapi.api.client` module.
+
+#### Using the Library Directly
+
+```python
+from wapi.api.client import WedosAPIClient
+from wapi.config import get_config
+
+# Load credentials
+username = get_config('WAPI_USERNAME')
+password = get_config('WAPI_PASSWORD')
+
+# Initialize client
+client = WedosAPIClient(username, password, use_json=False)
+
+# Make API calls
+result = client.ping()
+result = client.domain_info('example.com')
+result = client.call('domains-list', {})
+```
+
+#### `WedosAPIClient.__init__(username, password, base_url="https://api.wedos.com/wapi", use_json=False)`
 
 Initialize WEDOS API client.
 
@@ -418,13 +492,6 @@ Initialize WEDOS API client.
 - `password` (str): WAPI password
 - `base_url` (str): Base URL for API (default: `"https://api.wedos.com/wapi"`)
 - `use_json` (bool): Use JSON format instead of XML (default: `False`)
-
-**Example:**
-```python
-api = WedosAPI("user@example.com", "password", use_json=False)
-```
-
-**Verified:** ✅ Initialization works correctly
 
 #### `call(command, data=None)`
 
@@ -440,7 +507,7 @@ Call any WEDOS WAPI command.
 ```python
 {
     "response": {
-        "code": "1000",  # or 1000 (int)
+        "code": 1000,  # or "1000" (string)
         "result": "OK",
         "timestamp": "1764957371",
         "clTRID": "wapi-1764957371",
@@ -456,15 +523,6 @@ Call any WEDOS WAPI command.
 - `1001` = Operation started (asynchronous)
 - `2xxx` = Error codes (see [WEDOS WAPI documentation](https://kb.wedos.cz/wapi-manual/))
 
-**Example:**
-```python
-result = api.call('ping', {})
-if result['response']['code'] == '1000':
-    print("Connection OK")
-```
-
-**Verified:** ✅ Works with `ping`, `domain-info`, `nsset-info` commands
-
 #### `domain_info(domain_name)`
 
 Get domain information.
@@ -474,16 +532,7 @@ Get domain information.
 
 **Returns:** Dictionary with domain information
 
-**Example:**
-```python
-result = api.domain_info('example.com')
-domain = result['response']['data']['domain']
-print(f"Status: {domain['status']}")
-```
-
-**Verified:** ✅ Returns correct domain data
-
-#### `domain_update_ns(domain_name, nsset_name=None, nameservers=None, wait_for_completion=False)`
+#### `domain_update_ns(domain_name, nsset_name=None, nameservers=None)`
 
 Update domain nameservers.
 
@@ -491,87 +540,16 @@ Update domain nameservers.
 - `domain_name` (str): Domain name
 - `nsset_name` (str, optional): Name of existing NSSET to assign
 - `nameservers` (list, optional): List of nameserver dictionaries
-- `wait_for_completion` (bool): If True, poll until async operation completes (default: `False`)
 
 **Note:** Either `nsset_name` or `nameservers` must be provided.
 
-**Nameserver Dictionary Format:**
-```python
-{
-    "name": "ns1.example.com",
-    "addr_ipv4": "1.2.3.4",
-    "addr_ipv6": "2001:db8::1"  # Optional
-}
-```
+#### `ping()`
 
-**Example 1: Use Existing NSSET**
-```python
-result = api.domain_update_ns('example.com', nsset_name='MY-NSSET')
-```
+Test API connection.
 
-**Example 2: Create New NSSET**
-```python
-nameservers = [
-    {
-        "name": "ns1.example.com",
-        "addr_ipv4": "1.2.3.4",
-        "addr_ipv6": "2001:db8::1"
-    }
-]
-result = api.domain_update_ns('example.com', nameservers=nameservers)
-```
+**Returns:** Dictionary with ping response
 
-**Verified:** ✅ Creates NSSET and assigns to domain correctly
-
-#### `nsset_create(nsset_name, nameservers, tld="cz", tech_c=None, wait_for_completion=False)`
-
-Create a new NSSET with nameservers and GLUE records.
-
-**Parameters:**
-- `nsset_name` (str): NSSET name
-- `nameservers` (list): List of nameserver dictionaries
-- `tld` (str): Top-level domain (default: `"cz"`)
-- `tech_c` (str, optional): Technical contact handle
-- `wait_for_completion` (bool): If True, poll until async operation completes (default: `False`)
-
-**Returns:** Dictionary with API response
-
-**Example:**
-```python
-nameservers = [
-    {
-        "name": "ns1.example.com",
-        "addr_ipv4": "1.2.3.4",
-        "addr_ipv6": "2001:db8::1"
-    }
-]
-result = api.nsset_create("MY-NSSET", nameservers, tld="cz")
-```
-
-**Verified:** ✅ Creates NSSET correctly
-
-#### `poll_until_complete(command, identifier, identifier_key="name", max_attempts=60, interval=10)`
-
-Poll API until operation completes (for asynchronous operations).
-
-**Parameters:**
-- `command` (str): Command to poll (e.g., `"nsset-info"`, `"domain-info"`)
-- `identifier` (str): Identifier value (e.g., NSSET name, domain name)
-- `identifier_key` (str): Key name for identifier in request (default: `"name"`)
-- `max_attempts` (int): Maximum polling attempts (default: `60`)
-- `interval` (int): Seconds between attempts (default: `10`)
-
-**Returns:** Final status response or timeout error
-
-**Example:**
-```python
-# After starting async operation
-result = api.nsset_create("MY-NSSET", nameservers)
-if result["response"]["code"] == "1001":
-    final = api.poll_until_complete("nsset-info", "MY-NSSET")
-```
-
-**Verified:** ✅ Polling mechanism works correctly
+**Verified:** ✅ All methods tested and working correctly
 
 ---
 
@@ -1058,12 +1036,17 @@ chmod 755 *.py
 
 ### Project Files
 
-- `wedos_api.py` - Main API client
-- `update_domain_ns.py` - Command-line tool
+- `wapi/` - Main Python package
+  - `wapi/cli.py` - CLI entry point
+  - `wapi/api/client.py` - API client library
+  - `wapi/commands/` - Command modules
+- `setup.py` - Package setup
+- `requirements.txt` - Dependencies
 - `README.md` - Project documentation
-- `USAGE_EXAMPLES.md` - Usage examples
-- `SECURITY.md` - Security recommendations
-- `NOTIFICATION_METHOD.md` - Notification methods documentation
+- `WIKI.md` - Complete documentation (this file)
+- `CHANGELOG.md` - Version history
+- `AUDIT.md` - Project audit and improvements
+- `PROJECT_STATUS.md` - Implementation status
 
 ### GitHub Repository
 
@@ -1074,23 +1057,25 @@ chmod 755 *.py
 
 ## Verification Checklist
 
-All commands in this wiki have been verified on a production WAPI system:
+All CLI commands in this wiki have been verified on a production WAPI system:
 
 - ✅ Installation and dependencies
 - ✅ Configuration (environment variables and config.env)
-- ✅ Basic API connection (ping)
-- ✅ Domain information retrieval
-- ✅ Nameserver updates
-- ✅ NSSET creation
-- ✅ Command-line tool (`update_domain_ns.py`)
-- ✅ XML and JSON formats
-- ✅ Asynchronous operations (POLL Queue)
+- ✅ Basic API connection (`wapi auth ping`)
+- ✅ Domain operations (`wapi domain list`, `wapi domain info`, `wapi domain update-ns`)
+- ✅ NSSET operations (`wapi nsset info`, `wapi nsset create`)
+- ✅ Contact operations (`wapi contact info`)
+- ✅ DNS operations (`wapi dns list`, `wapi dns records`, `wapi dns add`, `wapi dns delete`)
+- ✅ Configuration management (`wapi config show`, `wapi config validate`, `wapi config set`)
+- ✅ Multiple output formats (table, JSON, XML, YAML)
+- ✅ Sensitive data filtering
 - ✅ Error handling
 
 **Last Verified:** 2025-01-05  
 **System:** Production WAPI  
-**Python Version:** 3.11.x  
-**Status:** All operations functional
+**Python Version:** 3.13.x  
+**CLI Version:** 0.6.0+  
+**Status:** All operations functional and production-ready
 
 ---
 

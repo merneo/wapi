@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Polling for NSSET Create**: `wapi nsset create --wait` now polls until NSSET is created
 - **Polling for DNS Add**: `wapi dns add --wait` now polls until DNS record is added
 - **Polling for DNS Delete**: `wapi dns delete --wait` now polls until DNS record is deleted
+- **DNS Record Update**: `wapi dns update <domain> --id <id>` command for updating DNS records
+  - Support for updating name, type, value, and TTL
+  - `--wait` flag support with polling
 - Progress indicators during polling (when not in quiet mode)
 - Timeout handling (default: 60 attempts × 10 seconds = 10 minutes)
 

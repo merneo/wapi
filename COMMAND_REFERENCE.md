@@ -119,9 +119,15 @@ wapi dns list example.com
 
 ### DNS Record Operations
 ```bash
+# Add DNS record
 wapi dns add example.com --type A --name www --value 192.0.2.1
-wapi dns update example.com --record-id 123 --value 192.0.2.2
-wapi dns delete example.com --record-id 123
+
+# Update DNS record
+wapi dns update example.com --id 123 --value 192.0.2.2
+wapi dns update example.com --id 123 --name www --value 192.0.2.3 --ttl 7200 --wait
+
+# Delete DNS record
+wapi dns delete example.com --id 123
 ```
 
 ## Auth Module

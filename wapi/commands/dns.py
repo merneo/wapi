@@ -193,6 +193,11 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
         print("Error: Record ID required (--id)", file=sys.stderr)
         return 1
     
+    # Check that at least one field is being updated
+    if not any([args.name, args.type, args.value, args.ttl]):
+        print("Error: At least one field must be specified for update (--name, --type, --value, or --ttl)", file=sys.stderr)
+        return 1
+    
     # Build update data - WAPI uses dns-row-update command
     update_data = {
         "domain": args.domain,

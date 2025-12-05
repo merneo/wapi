@@ -157,7 +157,7 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
                 is_complete=check_record_added,
                 max_attempts=60,
                 interval=10,
-                verbose=not args.quiet if hasattr(args, 'quiet') else True
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
             final_response = final_result.get('response', {})
@@ -240,7 +240,7 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
                 is_complete=check_record_deleted,
                 max_attempts=60,
                 interval=10,
-                verbose=not args.quiet if hasattr(args, 'quiet') else True
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
             final_response = final_result.get('response', {})

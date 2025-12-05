@@ -240,7 +240,7 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 is_complete=check_domain_updated,
                 max_attempts=60,
                 interval=10,
-                verbose=not args.quiet
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
             final_response = final_result.get('response', {})

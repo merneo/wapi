@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - Contact list implementation
 - NSSET list implementation
-- Domain list implementation
 - DNS record update operation
 - Async operation polling (--wait flag)
 
@@ -35,6 +34,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config commands tested - working correctly
 - DNS list tested with spravuju.cz - working correctly
 - All sensitive data filtered from outputs
+
+### Added (Post v0.6.0)
+- DNS record operations fully implemented
+  - `wapi dns records <domain>` - List all DNS records
+  - `wapi dns add <domain>` - Add DNS record with full options
+  - `wapi dns delete <domain>` - Delete DNS record by ID
+- Domain list command implemented
+  - `wapi domain list` - List all domains
+  - `wapi domain list --tld <tld>` - Filter by TLD
+  - `wapi domain list --status <status>` - Filter by status
+- All operations tested and working correctly
 - Phase 4: Domain module
 - Phase 5: NSSET module
 - Phase 6: Additional modules (contact, config, dns)

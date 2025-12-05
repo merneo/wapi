@@ -19,8 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for updating name, type, value, and TTL
   - `--wait` flag support with polling
 - **Unit Tests**: Comprehensive test suite
-  - `tests/test_validators.py` - Tests for domain, IPv4, IPv6, nameserver, email validation
-  - `tests/test_formatters.py` - Tests for table, JSON, XML, YAML output formatting
+  - `tests/test_validators.py` - Tests for domain, IPv4, IPv6, nameserver, email validation (18 tests)
+  - `tests/test_formatters.py` - Tests for table, JSON, XML, YAML output formatting (8 tests)
+  - All tests passing (26 total tests)
 - Progress indicators during polling (when not in quiet mode)
 - Timeout handling (default: 60 attempts × 10 seconds = 10 minutes)
 

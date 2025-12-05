@@ -18,12 +18,13 @@ WAPI CLI is a command-line interface tool for managing WEDOS domains, NSSETs, co
 **Key Features:**
 - ✅ Complete domain management (list, info, update nameservers)
 - ✅ NSSET operations (create, info)
-- ✅ DNS record management (list, add, delete)
+- ✅ DNS record management (list, add, update, delete)
 - ✅ Contact information retrieval
 - ✅ Configuration management
 - ✅ Multiple output formats (table, JSON, XML, YAML)
 - ✅ Sensitive data filtering
-- ✅ Production-ready and tested
+- ✅ Async operation polling with `--wait` flag
+- ✅ Production-ready, tested, and documented
 
 ## Installation
 

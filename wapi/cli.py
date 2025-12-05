@@ -121,6 +121,7 @@ def main():
     
     nsset_info_parser = nsset_subparsers.add_parser('info', help='Get NSSET information')
     nsset_info_parser.add_argument('name', help='NSSET name')
+    nsset_info_parser.add_argument('--tld', help='Top-level domain (auto-detected if not specified)')
     nsset_info_parser.add_argument('--domain', help='Optional: Domain using this NSSET (workaround if direct access fails)')
     nsset_info_parser.set_defaults(func=cmd_nsset_info)
     

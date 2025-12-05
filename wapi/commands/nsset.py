@@ -62,8 +62,26 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
 
 def cmd_nsset_info(args, client: WedosAPIClient) -> int:
     """Handle nsset info command"""
-    # Try nsset-info command first
-    result = client.call("nsset-info", {"nsset": args.name})
+    # Determine TLD - from argument, domain, or default to 'cz'
+    tld = 'cz'  # Default
+    
+    if hasattr(args, 'tld') and args.tld:
+        tld = args.tld
+    elif hasattr(args, 'domain') and args.domain:
+        # Extract TLD from domain name
+        domain_parts = args.domain.split('.')
+        if len(domain_parts) > 1:
+            tld = domain_parts[-1]
+    else:
+        # Try to extract from NSSET name (e.g., NS-SPRAVUJU-CZ-...)
+        if '-CZ-' in args.name.upper():
+            tld = 'cz'
+        elif '-COM-' in args.name.upper():
+            tld = 'com'
+        # Add more TLD detection as needed
+    
+    # WAPI nsset-info requires 'name' and 'tld' parameters (not 'nsset')
+    result = client.call("nsset-info", {"name": args.name, "tld": tld})
     response = result.get('response', {})
     code = response.get('code')
     
@@ -72,11 +90,9 @@ def cmd_nsset_info(args, client: WedosAPIClient) -> int:
         print(format_output(nsset, args.format))
         return 0
     
-    # If direct nsset-info fails, try alternative: get info from domain using this NSSET
-    # This is a workaround since nsset-info may have access restrictions
+    # If direct call fails, try workaround via domain-info
     error_msg = response.get('result', 'Unknown error')
     
-    # Try to find a domain using this NSSET (if domain name provided as alternative)
     if hasattr(args, 'domain') and args.domain:
         domain_result = client.domain_info(args.domain)
         domain_code = domain_result.get('response', {}).get('code')
@@ -84,20 +100,22 @@ def cmd_nsset_info(args, client: WedosAPIClient) -> int:
             domain = domain_result.get('response', {}).get('data', {}).get('domain', {})
             domain_nsset = domain.get('nsset')
             if domain_nsset == args.name:
-                # Found domain using this NSSET - extract NSSET info from domain response
+                # Extract NSSET info from domain response
                 dns = domain.get('dns', {})
                 nsset_data = {
                     'name': domain_nsset,
                     'dns': dns
                 }
                 print(format_output(nsset_data, args.format))
-                print("\nNote: NSSET information retrieved via domain-info (nsset-info may have access restrictions).", file=sys.stderr)
+                print("\nNote: NSSET information retrieved via domain-info (nsset-info direct call failed).", file=sys.stderr)
                 return 0
     
     # If all fails, show error
     print(f"Error ({code}): {error_msg}", file=sys.stderr)
-    print("\nNote: nsset-info may require the NSSET to be accessible to your account.", file=sys.stderr)
-    print("Alternative: Use 'wapi domain info <domain>' to get NSSET information for domains using this NSSET.", file=sys.stderr)
+    if hasattr(args, 'domain') and args.domain:
+        print(f"\nTip: Try with --domain {args.domain} to use domain-info workaround.", file=sys.stderr)
+    else:
+        print("\nTip: Use --domain <domain> option to get NSSET info via domain-info.", file=sys.stderr)
     return 1
 
 

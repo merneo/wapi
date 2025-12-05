@@ -132,19 +132,31 @@ wapi dns delete example.com --id 123
 
 ## Auth Module
 
-### Test Connection
+### Login (Interactive)
 ```bash
-wapi auth ping
+# Interactive login (prompts for username and password)
+wapi auth login
+
+# Login with username provided
+wapi auth login --username user@example.com
+
+# Login with both (not recommended)
+wapi auth login --username user@example.com --password mypassword
 ```
 
-### Verify Credentials
+### Logout
 ```bash
-wapi auth test
+wapi auth logout
 ```
 
 ### Check Status
 ```bash
 wapi auth status
+```
+
+### Test Connection
+```bash
+wapi auth ping
 ```
 
 ## Config Module

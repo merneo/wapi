@@ -162,13 +162,19 @@ class WedosAPIClient:
         if self.use_json:
             request_body = self._build_json_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = requests.post(
-                self.base_url,
-                data={"request": request_body},
-                headers=headers
-            )
-            self.logger.debug(f"HTTP Response status: {response.status_code}")
-            result = response.json()
+            try:
+                response = requests.post(
+                    self.base_url,
+                    data={"request": request_body},
+                    headers=headers,
+                    timeout=30
+                )
+                self.logger.debug(f"HTTP Response status: {response.status_code}")
+                response.raise_for_status()
+                result = response.json()
+            except requests.exceptions.RequestException as e:
+                self.logger.error(f"HTTP request failed: {e}")
+                raise
             
             # Log response
             resp_code = result.get('response', {}).get('code')
@@ -179,13 +185,19 @@ class WedosAPIClient:
         else:
             request_body = self._build_xml_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = requests.post(
-                self.base_url,
-                data={"request": request_body},
-                headers=headers
-            )
-            self.logger.debug(f"HTTP Response status: {response.status_code}")
-            result = self._parse_xml_response(response.text)
+            try:
+                response = requests.post(
+                    self.base_url,
+                    data={"request": request_body},
+                    headers=headers,
+                    timeout=30
+                )
+                self.logger.debug(f"HTTP Response status: {response.status_code}")
+                response.raise_for_status()
+                result = self._parse_xml_response(response.text)
+            except requests.exceptions.RequestException as e:
+                self.logger.error(f"HTTP request failed: {e}")
+                raise
             
             # Log response
             resp_code = result.get('response', {}).get('code')

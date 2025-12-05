@@ -68,6 +68,10 @@ def cmd_ping(args, client: WedosAPIClient):
         return 1
 
 
+# Import auth command handlers
+from .commands.auth import cmd_auth_login, cmd_auth_logout, cmd_auth_status
+
+
 # Import command handlers
 from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
 from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
@@ -102,6 +106,17 @@ def main():
     
     ping_parser = auth_subparsers.add_parser('ping', help='Test API connection')
     ping_parser.set_defaults(func=cmd_ping)
+    
+    login_parser = auth_subparsers.add_parser('login', help='Interactive login (save credentials)')
+    login_parser.add_argument('--username', help='Username (email) - if not provided, will prompt')
+    login_parser.add_argument('--password', help='Password - if not provided, will prompt securely')
+    login_parser.set_defaults(func=cmd_auth_login)
+    
+    logout_parser = auth_subparsers.add_parser('logout', help='Remove saved credentials')
+    logout_parser.set_defaults(func=cmd_auth_logout)
+    
+    status_parser = auth_subparsers.add_parser('status', help='Show authentication status')
+    status_parser.set_defaults(func=cmd_auth_status)
     
     # Domain module
     domain_parser = subparsers.add_parser('domain', help='Domain management')

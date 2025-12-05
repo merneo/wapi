@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.8.0] - 2025-01-05
 
 ### Added
+- **Authentication CLI Commands**:
+  - `wapi auth login` - Interactive login to save credentials
+    - Prompts for username and password (password hidden)
+    - Validates credentials with WAPI
+    - Saves to config.env with secure permissions (600)
+    - Supports `--username` and `--password` flags for non-interactive use
+  - `wapi auth logout` - Remove saved credentials from config file
+  - `wapi auth status` - Show authentication status and test connection
 - **Comprehensive Logging System**: Full logging support across entire project
   - `wapi/utils/logger.py` - Centralized logging configuration
   - Logging integrated into all modules (API client, commands, validators)
@@ -32,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error Handling**: Better error context with logging
 - **Debugging**: Easier troubleshooting with detailed logs
 - **Monitoring**: Track all operations via log files
+- **Logging Coverage**: Logging integrated into all modules
+  - API client: All requests, responses, HTTP errors, polling
+  - Commands: All operations, successes, failures
+  - Validators: All validation errors
+  - Formatters: All format operations
+  - Config: Load and validate operations
+  - Auth: Authentication calculations
+- **Exception Handling**: 
+  - KeyboardInterrupt handling with logging
+  - Stack traces in verbose mode
+  - HTTP timeout and error logging
+- **Security**: Enhanced sensitive data filtering in all log functions
 
 ## [0.7.0] - 2025-01-05
 

@@ -5,20 +5,22 @@
 [![Python](https://img.shields.io/badge/Python-3.6+-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**Complete, production-ready documentation for WEDOS WAPI Python client** with verified examples, comprehensive guides, and best practices. Learn how to integrate WEDOS domain management API into your Python applications with step-by-step tutorials, API reference, and real-world examples.
+**WAPI CLI - Command-line interface for WEDOS WAPI** with verified commands, comprehensive documentation, and best practices. Manage WEDOS domains, NSSETs, contacts, and DNS records from the command line with a user-friendly interface.
 
 ## What is WEDOS WAPI?
 
 WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS settings, nameservers, and other domain-related operations through WEDOS hosting services. This repository provides comprehensive documentation and examples for integrating WEDOS WAPI into Python applications.
 
 **Key Features:**
-- ✅ Complete API reference with verified examples
-- ✅ Step-by-step installation and configuration guides
-- ✅ Command-line tools documentation
-- ✅ Asynchronous operations and notification methods
-- ✅ Security best practices
-- ✅ Troubleshooting guide
-- ✅ All examples tested on production WAPI systems
+- ✅ Complete CLI tool with 20+ commands
+- ✅ Domain management (list, info, update nameservers)
+- ✅ NSSET operations (create, info)
+- ✅ DNS record management (list, add, delete)
+- ✅ Contact information retrieval
+- ✅ Configuration management
+- ✅ Multiple output formats (table, JSON, XML, YAML)
+- ✅ Sensitive data filtering
+- ✅ Production-ready and fully tested
 
 ## 📚 Complete Documentation
 
@@ -60,9 +62,11 @@ Our comprehensive wiki documentation (948+ lines) covers everything you need to 
 
 Get started with WEDOS WAPI in Python in just a few steps:
 
-### Step 1: Install Dependencies
+### Step 1: Install the Package
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/merneo/wapi.git
+cd wapi
+pip install -e .
 ```
 
 ### Step 2: Configure Your Credentials
@@ -73,15 +77,21 @@ cp config.env.example config.env
 chmod 600 config.env  # Secure the file
 ```
 
-### Step 3: Read the Documentation
-See [WIKI.md](WIKI.md) for complete guides, examples, and API reference.
+### Step 3: Test Your Connection
+```bash
+wapi auth ping
+```
 
-### Step 4: Test Your Connection
-```python
-from wedos_api import WedosAPI
-api = WedosAPI("your@email.com", "your_password")
-result = api.call('ping', {})
-print(result)  # Should return {"code": "1000", "result": "OK"}
+### Step 4: Start Using the CLI
+```bash
+# List your domains
+wapi domain list
+
+# Get domain information
+wapi domain info example.com
+
+# List DNS records
+wapi dns records example.com
 ```
 
 **For detailed instructions, see the [Complete Wiki](WIKI.md).**

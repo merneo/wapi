@@ -24,6 +24,15 @@ WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS set
 
 **👉 [Read the Complete Wiki Documentation](WIKI.md)**
 
+### Implementation & Development
+
+- **[Implementation Phases](IMPLEMENTATION_PHASES.md)** - Phase-by-phase implementation plan ordered by complexity
+- **[CLI Design Audit](CLI_DESIGN_AUDIT.md)** - Complete CLI design specification
+- **[Implementation Files](IMPLEMENTATION_FILES.md)** - Detailed file list and specifications
+- **[Command Reference](COMMAND_REFERENCE.md)** - Quick command reference guide
+- **[Changelog](CHANGELOG.md)** - Active changelog with semantic versioning
+- **[Workflow Guide](WORKFLOW.md)** - Safe repository development workflow
+
 Our comprehensive wiki documentation (948+ lines) covers everything you need to work with WEDOS WAPI in Python:
 
 ### Core Topics
@@ -159,11 +168,26 @@ This documentation adheres to industry standards and best practices:
 ## 📊 Repository Status & Maintenance
 
 - **Last Updated**: 2025-01-05
+- **Current Version**: 1.0.0 (Documentation release)
 - **Documentation Status**: Complete and verified
 - **Examples Status**: All tested on production WAPI systems
 - **Code Quality**: Production ready
 - **Security**: No sensitive data, automated checks enabled
 - **Standards Compliance**: RFC-compliant examples, US English documentation
+- **Versioning**: [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md) - Actively maintained
+
+### Implementation Status
+
+- **Phase 0**: Not started (Project setup - 3 files)
+- **Phase 1**: Not started (Config & Auth - 6 files)
+- **Phase 2**: Not started (API Client - 2 files)
+- **Phase 3**: Not started (CLI Framework - 7 files)
+- **Phase 4**: Not started (Domain Module - 2 files)
+- **Phase 5**: Not started (NSSET Module - 2 files)
+- **Phase 6**: Not started (Additional Modules - 5 files)
+
+**See [IMPLEMENTATION_PHASES.md](IMPLEMENTATION_PHASES.md) for detailed phase breakdown.**
 
 ## 🎯 Use Cases
 

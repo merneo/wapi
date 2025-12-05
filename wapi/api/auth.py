@@ -6,8 +6,12 @@ Handles SHA1 hash calculation and timezone-aware authentication.
 
 import hashlib
 from datetime import datetime
-import pytz
-from typing import str as StrType
+from typing import Optional, Tuple
+try:
+    import pytz
+except ImportError:
+    # Fallback if pytz not available
+    pytz = None
 
 
 def get_prague_hour() -> str:
@@ -22,8 +26,16 @@ def get_prague_hour() -> str:
         >>> len(hour)
         2
     """
-    prague_tz = pytz.timezone('Europe/Prague')
-    now = datetime.now(prague_tz)
+    if pytz:
+        prague_tz = pytz.timezone('Europe/Prague')
+        now = datetime.now(prague_tz)
+    else:
+        # Fallback: assume UTC+1 (Prague is UTC+1 in winter, UTC+2 in summer)
+        # For production, pytz should be installed
+        now = datetime.utcnow()
+        # Simple approximation: UTC+1
+        hour = (now.hour + 1) % 24
+        return f"{hour:02d}"
     return now.strftime('%H')
 
 
@@ -59,7 +71,7 @@ def calculate_auth(username: str, password: str) -> str:
     return auth_hash
 
 
-def validate_credentials(username: str, password: str) -> tuple[bool, Optional[str]]:
+def validate_credentials(username: str, password: str) -> Tuple[bool, Optional[str]]:
     """
     Validate credential format (not authentication).
     

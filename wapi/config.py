@@ -5,7 +5,7 @@ Handles loading configuration from config.env file and environment variables.
 """
 
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 from pathlib import Path
 
 
@@ -80,7 +80,7 @@ def get_config(key: str, default: Optional[str] = None, config_file: str = "conf
     return config.get(key, default)
 
 
-def validate_config(config_file: str = "config.env") -> tuple[bool, Optional[str]]:
+def validate_config(config_file: str = "config.env") -> Tuple[bool, Optional[str]]:
     """
     Validate that required configuration is present.
     

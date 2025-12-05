@@ -23,8 +23,11 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
     Returns:
         WedosAPIClient instance or None if configuration invalid
     """
+    logger = get_logger('cli')
+    
     is_valid, error = validate_config(config_file)
     if not is_valid:
+        logger.error(f"Configuration validation failed: {error}")
         print(f"Error: {error}", file=sys.stderr)
         return None
     
@@ -32,9 +35,11 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
     password = get_config('WAPI_PASSWORD', config_file=config_file)
     
     if not username or not password:
+        logger.error("Missing WAPI credentials")
         print("Error: WAPI_USERNAME and WAPI_PASSWORD must be set", file=sys.stderr)
         return None
     
+    logger.debug("API client credentials loaded successfully")
     return WedosAPIClient(username, password, use_json=False)
 
 

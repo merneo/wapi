@@ -12,7 +12,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="wapi-cli",
-    version="0.7.0",
+    version="0.8.0",
     author="WAPI CLI Team",
     description="Command-line interface for WEDOS WAPI",
     long_description=long_description,

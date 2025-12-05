@@ -49,10 +49,12 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("NSSET created successfully")
         print("✅ NSSET created successfully")
         print(format_output(response.get('data', {}), args.format))
         return 0
     elif code == '1001' or code == 1001:
+        logger.info("NSSET creation started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
@@ -81,11 +83,13 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
             final_code = final_response.get('code')
             
             if final_code in ['1000', 1000]:
+                logger.info("NSSET created successfully (after polling)")
                 print("✅ NSSET created successfully")
                 print(format_output(final_response, args.format))
                 return 0
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"NSSET creation polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
                 return 0
@@ -94,6 +98,7 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
             return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to create NSSET: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -127,6 +132,7 @@ def cmd_nsset_info(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info(f"NSSET information retrieved successfully for: {args.name}")
         nsset = response.get('data', {}).get('nsset', {})
         print(format_output(nsset, args.format))
         return 0

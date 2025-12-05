@@ -111,6 +111,7 @@ class WedosAPIClient:
             
             return result
         except ET.ParseError as e:
+            self.logger.error(f"XML parse error: {e}")
             return {
                 "response": {
                     "code": "9999",

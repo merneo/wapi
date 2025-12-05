@@ -44,13 +44,16 @@ def cmd_dns_list(args, client: WedosAPIClient) -> int:
                         'ipv6': server.get('addr_ipv6', '')
                     })
             
+            logger.info(f"Listed {len(dns_data)} nameserver(s) for {args.domain}")
             print(format_output(dns_data, args.format, headers=['name', 'ipv4', 'ipv6']))
             return 0
         else:
+            logger.warning(f"No DNS information available for {args.domain}")
             print("No DNS information available", file=sys.stderr)
             return 1
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to list nameservers: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -87,10 +90,12 @@ def cmd_dns_record_list(args, client: WedosAPIClient) -> int:
                     'rdata': row.get('rdata', '')
                 })
         
+        logger.info(f"Listed {len(records)} DNS record(s) for {args.domain}")
         print(format_output(records, args.format, headers=['id', 'name', 'ttl', 'type', 'rdata']))
         return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to list DNS records: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -122,10 +127,12 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("DNS record added successfully")
         print("✅ DNS record added successfully")
         print(format_output(response.get('data', {}), args.format))
         return 0
     elif code == '1001' or code == 1001:
+        logger.info("DNS record add started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
@@ -169,11 +176,13 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
             final_code = final_response.get('code')
             
             if final_code in ['1000', 1000]:
+                logger.info("DNS record added successfully (after polling)")
                 print("✅ DNS record added successfully")
                 print(format_output(final_response, args.format))
                 return 0
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"DNS add polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
                 return 0
@@ -182,6 +191,7 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
             return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to add DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -230,10 +240,12 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("DNS record updated successfully")
         print("✅ DNS record updated successfully")
         print(format_output(response.get('data', {}), args.format))
         return 0
     elif code == '1001' or code == 1001:
+        logger.info("DNS record update started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
@@ -282,11 +294,13 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
             final_code = final_response.get('code')
             
             if final_code in ['1000', 1000]:
+                logger.info("DNS record updated successfully (after polling)")
                 print("✅ DNS record updated successfully")
                 print(format_output(final_response, args.format))
                 return 0
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"DNS update polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
                 return 0
@@ -295,6 +309,7 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
             return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to update DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -327,9 +342,11 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("DNS record deleted successfully")
         print("✅ DNS record deleted successfully")
         return 0
     elif code == '1001' or code == 1001:
+        logger.info("DNS record delete started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
@@ -369,15 +386,18 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
             final_code = final_response.get('code')
             
             if final_code in ['1000', 1000]:
+                logger.info("DNS record deleted successfully (after polling)")
                 print("✅ DNS record deleted successfully")
                 return 0
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"DNS delete polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 return 0
         else:
             return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to delete DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1

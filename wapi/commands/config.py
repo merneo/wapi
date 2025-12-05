@@ -38,12 +38,14 @@ def cmd_config_validate(args, client=None) -> int:
     is_valid, error = validate_config(args.config)
     
     if is_valid:
+        logger.info("Configuration validation passed")
         print("✅ Configuration is valid")
         username = get_config('WAPI_USERNAME', config_file=args.config)
         if username:
             print(f"   Username: {username[:10]}...")
         return 0
     else:
+        logger.error(f"Configuration validation failed: {error}")
         print(f"❌ Configuration error: {error}", file=sys.stderr)
         return 1
 

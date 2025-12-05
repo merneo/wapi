@@ -4,12 +4,16 @@ Configuration management for WAPI CLI
 Handles loading configuration from config.env file and environment variables.
 """
 
+from .utils.logger import get_logger
+
 import os
 from typing import Optional, Dict, Tuple
 from pathlib import Path
 
 
 def load_config(config_file: str = "config.env") -> Dict[str, str]:
+    logger = get_logger('config')
+    logger.debug(f"Loading configuration from: {config_file}")
     """
     Load configuration from file and environment variables.
     
@@ -81,6 +85,8 @@ def get_config(key: str, default: Optional[str] = None, config_file: str = "conf
 
 
 def validate_config(config_file: str = "config.env") -> Tuple[bool, Optional[str]]:
+    logger = get_logger('config')
+    logger.debug(f"Validating configuration from: {config_file}")
     """
     Validate that required configuration is present.
     

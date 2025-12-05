@@ -40,6 +40,8 @@ def get_prague_hour() -> str:
 
 
 def calculate_auth(username: str, password: str) -> str:
+    logger = get_logger('api.auth')
+    logger.debug("Calculating authentication hash")
     """
     Calculate WEDOS WAPI authentication hash.
     

@@ -73,10 +73,12 @@ def cmd_domain_list(args, client: WedosAPIClient) -> int:
         if hasattr(args, 'status') and args.status:
             domain_list = [d for d in domain_list if d['status'] == args.status]
         
+        logger.info(f"Listed {len(domain_list)} domain(s)")
         print(format_output(domain_list, args.format, headers=['name', 'status', 'expiration', 'nsset']))
         return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to list domains: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -99,6 +101,7 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info(f"Domain information retrieved successfully for: {args.domain}")
         domain = response.get('data', {}).get('domain', {})
         
         # Filter sensitive data
@@ -109,6 +112,7 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
         return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to get domain information: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1
 
@@ -204,10 +208,12 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("Nameservers updated successfully")
         print("✅ Nameservers updated successfully")
         print(format_output(response, args.format))
         return 0
     elif code == '1001' or code == 1001:
+        logger.info("Operation started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
         if args.wait:
             print("Waiting for completion...")
@@ -260,11 +266,13 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
             final_code = final_response.get('code')
             
             if final_code in ['1000', 1000]:
+                logger.info("Nameservers updated successfully (after polling)")
                 print("✅ Nameservers updated successfully")
                 print(format_output(final_response, args.format))
                 return 0
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"Polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
                 return 0
@@ -273,5 +281,6 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
             return 0
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to update nameservers: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         return 1

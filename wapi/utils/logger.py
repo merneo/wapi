@@ -126,8 +126,16 @@ def log_api_request(logger: logging.Logger, command: str, data: dict = None):
     """Log API request"""
     if data:
         # Filter sensitive data
-        safe_data = {k: '[HIDDEN]' if 'password' in k.lower() or 'auth' in k.lower() else v 
-                     for k, v in data.items()}
+        safe_data = {}
+        for k, v in data.items():
+            if any(sensitive in k.lower() for sensitive in ['password', 'auth', 'token', 'key', 'secret']):
+                safe_data[k] = '[HIDDEN]'
+            elif isinstance(v, dict):
+                # Recursively filter nested dicts
+                safe_data[k] = {nk: '[HIDDEN]' if any(s in nk.lower() for s in ['password', 'auth']) else nv 
+                               for nk, nv in v.items()}
+            else:
+                safe_data[k] = v
         logger.debug(f"API Request: {command} with data: {safe_data}")
     else:
         logger.debug(f"API Request: {command}")
@@ -162,11 +170,32 @@ def log_operation_complete(logger: logging.Logger, operation: str, success: bool
     """Log operation completion"""
     if success:
         if details:
-            logger.info(f"Completed {operation}: {details}")
+            # Filter sensitive data from details
+            safe_details = {k: '[HIDDEN]' if any(s in k.lower() for s in ['password', 'auth', 'token']) else v 
+                          for k, v in details.items()}
+            logger.info(f"Completed {operation}: {safe_details}")
         else:
             logger.info(f"Completed {operation}")
     else:
         if details:
-            logger.error(f"Failed {operation}: {details}")
+            # Filter sensitive data from details
+            safe_details = {k: '[HIDDEN]' if any(s in k.lower() for s in ['password', 'auth', 'token']) else v 
+                          for k, v in details.items()}
+            logger.error(f"Failed {operation}: {safe_details}")
         else:
             logger.error(f"Failed {operation}")
+
+
+def log_exception(logger: logging.Logger, exception: Exception, context: str = None):
+    """
+    Log exception with context
+    
+    Args:
+        logger: Logger instance
+        exception: Exception object
+        context: Optional context string
+    """
+    if context:
+        logger.exception(f"Exception in {context}: {exception}")
+    else:
+        logger.exception(f"Exception: {exception}")

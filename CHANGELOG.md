@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-01-05
+
+### Added
+- **Comprehensive Logging System**: Full logging support across entire project
+  - `wapi/utils/logger.py` - Centralized logging configuration
+  - Logging integrated into all modules (API client, commands, validators)
+  - Support for console and file logging
+  - Automatic log file rotation (10MB max, 5 backups)
+  - Password and sensitive data filtering in logs
+- **Logging Options**:
+  - `--verbose / -v` - Enable DEBUG level logging
+  - `--quiet / -q` - Show only ERROR level
+  - `--log-file <path>` - Log to file
+  - `--log-level <level>` - Set custom log level (DEBUG, INFO, WARNING, ERROR)
+- **Logging Features**:
+  - API request/response logging
+  - Operation start/complete logging
+  - Validation error logging
+  - Polling progress logging
+  - Exception logging with stack traces (verbose mode)
+
+### Improved
+- **Error Handling**: Better error context with logging
+- **Debugging**: Easier troubleshooting with detailed logs
+- **Monitoring**: Track all operations via log files
+
 ## [0.7.0] - 2025-01-05
 
 ### Added

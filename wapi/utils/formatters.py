@@ -6,6 +6,8 @@ Supports multiple output formats: table, JSON, XML, YAML
 
 import json
 from typing import Any, Dict, List
+from .logger import get_logger
+
 try:
     from tabulate import tabulate
     TABULATE_AVAILABLE = True
@@ -125,13 +127,23 @@ def format_output(data: Any, format_type: str = "table", headers: List[str] = No
     Returns:
         Formatted string
     """
+    logger = get_logger('utils.formatters')
+    logger.debug(f"Formatting output as {format_type}")
+    
     format_type = format_type.lower()
     
-    if format_type == "json":
-        return format_json(data)
-    elif format_type == "xml":
-        return format_xml(data)
-    elif format_type == "yaml":
-        return format_yaml(data)
-    else:  # default to table
-        return format_table(data, headers)
+    try:
+        if format_type == "json":
+            result = format_json(data)
+        elif format_type == "xml":
+            result = format_xml(data)
+        elif format_type == "yaml":
+            result = format_yaml(data)
+        else:  # default to table
+            result = format_table(data, headers)
+        
+        logger.debug(f"Output formatted successfully ({len(result)} characters)")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to format output: {e}")
+        raise

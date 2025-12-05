@@ -10,6 +10,7 @@ from typing import Optional
 from .config import load_config, validate_config, get_config
 from .api.client import WedosAPIClient
 from .utils.formatters import format_output
+from .utils.logger import setup_logging, get_logger
 
 
 def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
@@ -39,11 +40,15 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
 
 def cmd_ping(args, client: WedosAPIClient):
     """Handle ping command"""
+    logger = get_logger('commands.auth')
+    logger.info("Testing API connection (ping)")
+    
     result = client.ping()
     response = result.get('response', {})
     code = response.get('code')
     
     if code == '1000' or code == 1000:
+        logger.info("API connection successful")
         output_data = {
             "status": "OK",
             "code": code,
@@ -52,7 +57,9 @@ def cmd_ping(args, client: WedosAPIClient):
         print(format_output(output_data, args.format))
         return 0
     else:
-        print(f"Error: {response.get('result', 'Unknown error')}", file=sys.stderr)
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"API connection failed: {error_msg}")
+        print(f"Error: {error_msg}", file=sys.stderr)
         return 1
 
 
@@ -77,6 +84,9 @@ def main():
                        default='table', help='Output format')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     parser.add_argument('--quiet', '-q', action='store_true', help='Quiet mode')
+    parser.add_argument('--log-file', help='Log file path (optional)')
+    parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       help='Log level (overrides --verbose/--quiet)')
     
     # Subcommands
     subparsers = parser.add_subparsers(dest='module', help='Module')
@@ -209,6 +219,17 @@ def main():
     
     # Parse arguments
     args = parser.parse_args()
+    
+    # Setup logging first (before any other operations)
+    logger = setup_logging(
+        verbose=args.verbose,
+        quiet=args.quiet,
+        log_file=getattr(args, 'log_file', None),
+        log_level=getattr(args, 'log_level', None)
+    )
+    
+    logger.debug("WAPI CLI started")
+    logger.debug(f"Arguments: {vars(args)}")
     
     # Handle no command
     if not args.module:

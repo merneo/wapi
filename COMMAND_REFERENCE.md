@@ -13,10 +13,10 @@ wapi [GLOBAL_OPTIONS] <MODULE> <COMMAND> [ARGUMENTS] [OPTIONS]
 ```
 --config <file>     Configuration file (default: config.env)
 --format <format>   Output format: json, xml, table, yaml (default: table)
---verbose / -v      Verbose output
---quiet / -q        Quiet mode (errors only)
---no-wait           Don't wait for async operations
---output <file>     Write output to file
+--verbose / -v      Verbose output (DEBUG level logging)
+--quiet / -q        Quiet mode (ERROR level only)
+--log-file <path>   Log to file (optional, auto-rotates)
+--log-level <level> Set log level: DEBUG, INFO, WARNING, ERROR
 --help / -h         Show help
 ```
 

@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 from .auth import calculate_auth
+from ..utils.logger import get_logger
 
 
 class WedosAPIClient:
@@ -32,6 +33,9 @@ class WedosAPIClient:
         self.password = password
         self.use_json = use_json
         self.base_url = f"{base_url}/json" if use_json else f"{base_url}/xml"
+        self.logger = get_logger('api.client')
+        
+        self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'})")
     
     def _calculate_auth(self) -> str:
         """Calculate authentication hash based on current hour in Europe/Prague timezone"""
@@ -150,6 +154,10 @@ class WedosAPIClient:
         Returns:
             Dictionary with API response
         """
+        from ..utils.logger import log_api_request, log_api_response
+        
+        log_api_request(self.logger, command, data)
+        
         if self.use_json:
             request_body = self._build_json_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -158,7 +166,15 @@ class WedosAPIClient:
                 data={"request": request_body},
                 headers=headers
             )
-            return response.json()
+            self.logger.debug(f"HTTP Response status: {response.status_code}")
+            result = response.json()
+            
+            # Log response
+            resp_code = result.get('response', {}).get('code')
+            resp_result = result.get('response', {}).get('result', '')
+            log_api_response(self.logger, command, resp_code, resp_result)
+            
+            return result
         else:
             request_body = self._build_xml_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -167,7 +183,15 @@ class WedosAPIClient:
                 data={"request": request_body},
                 headers=headers
             )
-            return self._parse_xml_response(response.text)
+            self.logger.debug(f"HTTP Response status: {response.status_code}")
+            result = self._parse_xml_response(response.text)
+            
+            # Log response
+            resp_code = result.get('response', {}).get('code')
+            resp_result = result.get('response', {}).get('result', '')
+            log_api_response(self.logger, command, resp_code, resp_result)
+            
+            return result
     
     def domain_info(self, domain_name: str) -> Dict[str, Any]:
         """
@@ -280,7 +304,11 @@ class WedosAPIClient:
         Returns:
             Final status response or timeout error
         """
+        self.logger.info(f"Starting polling for {check_command} (max {max_attempts} attempts, interval {interval}s)")
+        
         for attempt in range(1, max_attempts + 1):
+            self.logger.debug(f"Polling attempt {attempt}/{max_attempts} for {check_command}")
+            
             if verbose:
                 print(f"  Polling attempt {attempt}/{max_attempts}...", end='', flush=True)
             
@@ -291,12 +319,14 @@ class WedosAPIClient:
             # Check if complete
             if is_complete:
                 if is_complete(result):
+                    self.logger.info(f"Polling completed successfully after {attempt} attempts")
                     if verbose:
                         print(" ✅ Complete!")
                     return result
             else:
                 # Default: check for code 1000 (success)
                 if code == '1000' or code == 1000:
+                    self.logger.info(f"Polling completed successfully after {attempt} attempts")
                     if verbose:
                         print(" ✅ Complete!")
                     return result
@@ -304,8 +334,10 @@ class WedosAPIClient:
             # Check for error (not async, but actual error)
             if code and str(code).startswith('2'):
                 # Error code (2xxx), not async
+                error_msg = response.get('result', 'Unknown error')
+                self.logger.warning(f"Polling encountered error: {error_msg} (code: {code})")
                 if verbose:
-                    print(f" ❌ Error: {response.get('result', 'Unknown error')}")
+                    print(f" ❌ Error: {error_msg}")
                 return result
             
             if verbose:
@@ -313,12 +345,15 @@ class WedosAPIClient:
             
             # Wait before next attempt
             if attempt < max_attempts:
+                self.logger.debug(f"Waiting {interval}s before next polling attempt")
                 time.sleep(interval)
         
         # Timeout
+        timeout_msg = f"Polling timeout after {max_attempts} attempts ({max_attempts * interval} seconds)"
+        self.logger.error(timeout_msg)
         return {
             "response": {
                 "code": "9998",
-                "result": f"Polling timeout after {max_attempts} attempts ({max_attempts * interval} seconds)"
+                "result": timeout_msg
             }
         }

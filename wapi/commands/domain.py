@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional
 from ..api.client import WedosAPIClient
 from ..utils.formatters import format_output
 from ..utils.validators import validate_domain
+from ..utils.logger import get_logger
 
 
 def filter_sensitive_domain_data(domain: Dict[str, Any]) -> Dict[str, Any]:
@@ -38,6 +39,9 @@ def filter_sensitive_domain_data(domain: Dict[str, Any]) -> Dict[str, Any]:
 
 def cmd_domain_list(args, client: WedosAPIClient) -> int:
     """Handle domain list command"""
+    logger = get_logger('commands.domain')
+    logger.info("Listing domains")
+    
     # WAPI uses 'domains-list' command
     result = client.call("domains-list", {})
     response = result.get('response', {})
@@ -79,9 +83,13 @@ def cmd_domain_list(args, client: WedosAPIClient) -> int:
 
 def cmd_domain_info(args, client: WedosAPIClient) -> int:
     """Handle domain info command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Getting domain information for: {args.domain}")
+    
     # Validate domain name
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     
@@ -108,10 +116,15 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
 def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
     """Handle domain update-ns command"""
     from ..utils.validators import validate_nameserver
+    from ..utils.logger import log_operation_start, log_operation_complete
+    
+    logger = get_logger('commands.domain')
+    logger.info(f"Updating nameservers for domain: {args.domain}")
     
     # Validate domain name
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     

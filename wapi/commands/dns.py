@@ -9,6 +9,7 @@ from typing import List, Dict, Any
 from ..api.client import WedosAPIClient
 from ..utils.formatters import format_output
 from ..utils.validators import validate_domain
+from ..utils.logger import get_logger
 
 
 def cmd_dns_list(args, client: WedosAPIClient) -> int:
@@ -96,9 +97,13 @@ def cmd_dns_record_list(args, client: WedosAPIClient) -> int:
 
 def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
     """Handle dns record add command"""
+    logger = get_logger('commands.dns')
+    logger.info(f"Adding DNS record for {args.domain}: {args.type} {args.name or '@'} = {args.value}")
+    
     # Validate domain
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     
@@ -183,9 +188,14 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
 
 def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
     """Handle dns record update command"""
+    logger = get_logger('commands.dns')
+    update_fields = [k for k in ['name', 'type', 'value', 'ttl'] if getattr(args, k, None)]
+    logger.info(f"Updating DNS record {args.id} for {args.domain}: {', '.join(update_fields)}")
+    
     # Validate domain
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     
@@ -291,9 +301,13 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
 
 def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
     """Handle dns record delete command"""
+    logger = get_logger('commands.dns')
+    logger.info(f"Deleting DNS record {args.id} for {args.domain}")
+    
     # Validate domain
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
         return 1
     

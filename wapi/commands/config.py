@@ -13,6 +13,9 @@ from ..utils.formatters import format_output
 
 def cmd_config_show(args, client=None) -> int:
     """Handle config show command"""
+    logger = get_logger('commands.config')
+    logger.debug(f"Showing configuration from: {args.config}")
+    
     config = load_config(args.config)
     
     # Filter sensitive data
@@ -29,6 +32,9 @@ def cmd_config_show(args, client=None) -> int:
 
 def cmd_config_validate(args, client=None) -> int:
     """Handle config validate command"""
+    logger = get_logger('commands.config')
+    logger.debug(f"Validating configuration from: {args.config}")
+    
     is_valid, error = validate_config(args.config)
     
     if is_valid:

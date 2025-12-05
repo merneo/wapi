@@ -298,8 +298,10 @@ wapi [GLOBAL_OPTIONS] <MODULE> <COMMAND> [ARGUMENTS] [OPTIONS]
 
 - `--config <file>` - Configuration file (default: config.env)
 - `--format <format>` - Output format: table, json, xml, yaml (default: table)
-- `--verbose / -v` - Verbose output
-- `--quiet / -q` - Quiet mode
+- `--verbose / -v` - Verbose output (DEBUG level logging)
+- `--quiet / -q` - Quiet mode (ERROR level only)
+- `--log-file <path>` - Log to file (optional)
+- `--log-level <level>` - Set log level: DEBUG, INFO, WARNING, ERROR (overrides --verbose/--quiet)
 
 ### Test Connection (Ping)
 
@@ -866,6 +868,101 @@ The client automatically calculates authentication for each request using the cu
 **Reference:** [WEDOS WAPI Authentication](https://kb.wedos.cz/wapi-manual/#wedos-api)
 
 **Verified:** ✅ Authentication works correctly
+
+---
+
+## Logging
+
+WAPI CLI includes comprehensive logging to help debug issues and track operations.
+
+### Log Levels
+
+- **DEBUG** - Detailed information for debugging (enabled with `--verbose`)
+- **INFO** - General informational messages (default)
+- **WARNING** - Warning messages (validation errors, etc.)
+- **ERROR** - Error messages (API errors, failures)
+
+### Using Logging
+
+#### Verbose Mode
+
+Enable detailed logging for debugging:
+
+```bash
+wapi --verbose domain info example.com
+```
+
+**Output:**
+```
+DEBUG: API Request: domain-info with data: {'name': 'example.com'}
+DEBUG: HTTP Response status: 200
+DEBUG: API Response: domain-info - Success (code: 1000)
+INFO: Getting domain information for: example.com
+```
+
+#### Quiet Mode
+
+Show only errors:
+
+```bash
+wapi --quiet domain list
+```
+
+#### Log to File
+
+Save logs to a file:
+
+```bash
+wapi --log-file /var/log/wapi.log domain list
+```
+
+Log files are automatically rotated (10MB max, 5 backups).
+
+#### Custom Log Level
+
+Set specific log level:
+
+```bash
+wapi --log-level WARNING domain info example.com
+```
+
+### Log Format
+
+**Console (verbose):**
+```
+2025-01-05 10:30:45 [   DEBUG] wapi.api.client:142 - API Request: ping
+```
+
+**Console (normal):**
+```
+INFO: Getting domain information for: example.com
+```
+
+**File (always detailed):**
+```
+2025-01-05 10:30:45 [   DEBUG] wapi.api.client:call:142 - API Request: ping with data: {}
+2025-01-05 10:30:45 [   DEBUG] wapi.api.client:call:165 - HTTP Response status: 200
+2025-01-05 10:30:45 [    INFO] wapi.api.client:call:170 - API Response: ping - Success (code: 1000)
+```
+
+### What is Logged
+
+- **API Requests**: All WAPI commands and parameters (passwords hidden)
+- **API Responses**: Response codes and results
+- **Operations**: Start and completion of operations
+- **Validation**: Validation errors and warnings
+- **Errors**: All errors with stack traces (in verbose mode)
+- **Polling**: Polling attempts and results
+
+### Example: Debugging Failed Operation
+
+```bash
+# Enable verbose logging to file
+wapi --verbose --log-file debug.log domain update-ns example.com --nsset MY-NSSET
+
+# Check the log file
+cat debug.log | grep ERROR
+```
 
 ---
 

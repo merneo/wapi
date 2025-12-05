@@ -6,6 +6,7 @@ All validation functions use RFC-compliant standards and academic examples.
 
 import re
 from typing import Tuple, Optional
+from .logger import get_logger
 
 
 def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
@@ -24,7 +25,10 @@ def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
         >>> validate_domain('invalid..domain')
         (False, 'Contains consecutive dots')
     """
+    logger = get_logger('utils.validators')
+    
     if not domain:
+        logger.debug("Domain validation failed: empty domain")
         return False, "Domain name cannot be empty"
     
     if len(domain) > 253:
@@ -40,8 +44,10 @@ def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
     
     # Must have at least one dot
     if '.' not in domain:
+        logger.debug(f"Domain validation failed: {domain} - missing dot")
         return False, "Domain must contain at least one dot"
     
+    logger.debug(f"Domain validation passed: {domain}")
     return True, None
 
 

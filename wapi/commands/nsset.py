@@ -9,12 +9,17 @@ from typing import List, Dict, Any, Optional
 from ..api.client import WedosAPIClient
 from ..utils.formatters import format_output
 from ..utils.validators import validate_nameserver
+from ..utils.logger import get_logger
 
 
 def cmd_nsset_create(args, client: WedosAPIClient) -> int:
     """Handle nsset create command"""
+    logger = get_logger('commands.nsset')
+    logger.info(f"Creating NSSET: {args.name}")
+    
     # Validate nameservers
     if not args.nameserver:
+        logger.error("No nameservers provided")
         print("Error: At least one nameserver required (--nameserver)", file=sys.stderr)
         return 1
     
@@ -95,6 +100,9 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
 
 def cmd_nsset_info(args, client: WedosAPIClient) -> int:
     """Handle nsset info command"""
+    logger = get_logger('commands.nsset')
+    logger.info(f"Getting NSSET information for: {args.name}")
+    
     # Determine TLD - from argument, domain, or default to 'cz'
     tld = 'cz'  # Default
     

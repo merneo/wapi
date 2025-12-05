@@ -8,6 +8,7 @@ import sys
 from typing import Dict, Any
 from ..api.client import WedosAPIClient
 from ..utils.formatters import format_output
+from ..utils.logger import get_logger
 
 
 def filter_sensitive_contact_data(contact: Dict[str, Any]) -> Dict[str, Any]:
@@ -35,6 +36,9 @@ def filter_sensitive_contact_data(contact: Dict[str, Any]) -> Dict[str, Any]:
 
 def cmd_contact_info(args, client: WedosAPIClient) -> int:
     """Handle contact info command"""
+    logger = get_logger('commands.contact')
+    logger.info(f"Getting contact information for: {args.handle}")
+    
     # Determine TLD - from argument or default to 'cz'
     tld = 'cz'  # Default
     

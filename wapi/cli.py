@@ -104,6 +104,28 @@ def main():
     update_ns_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
     update_ns_parser.set_defaults(func=cmd_domain_update_ns)
     
+    # NSSET module
+    nsset_parser = subparsers.add_parser('nsset', help='NSSET management')
+    nsset_subparsers = nsset_parser.add_subparsers(dest='command', help='Command')
+    
+    from .commands.nsset import cmd_nsset_create, cmd_nsset_info, cmd_nsset_list
+    
+    create_parser = nsset_subparsers.add_parser('create', help='Create new NSSET')
+    create_parser.add_argument('name', help='NSSET name')
+    create_parser.add_argument('--nameserver', action='append', required=True,
+                              help='Nameserver (name:ipv4:ipv6) - can be used multiple times')
+    create_parser.add_argument('--tld', default='cz', help='Top-level domain (default: cz)')
+    create_parser.add_argument('--tech-c', dest='tech_c', help='Technical contact handle')
+    create_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    create_parser.set_defaults(func=cmd_nsset_create)
+    
+    info_parser = nsset_subparsers.add_parser('info', help='Get NSSET information')
+    info_parser.add_argument('name', help='NSSET name')
+    info_parser.set_defaults(func=cmd_nsset_info)
+    
+    list_parser = nsset_subparsers.add_parser('list', aliases=['-l'], help='List NSSETs')
+    list_parser.set_defaults(func=cmd_nsset_list)
+    
     # Parse arguments
     args = parser.parse_args()
     

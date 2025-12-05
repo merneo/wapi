@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tested
 - All modules tested with production WAPI
-- Domain info tested with armlab.cz domain
+- Domain info tested with spravuju.cz domain
 - Ping command verified working
 
 ## [0.3.0] - 2025-01-05
@@ -57,6 +57,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI commands tested with armlab.cz domain
 - All output formats verified working
 - Ping and domain info commands functional
+
+## [0.4.0] - 2025-01-05
+
+### Added
+- Phase 4: Domain module complete
+  - `wapi/commands/domain.py` - Domain command handlers
+  - `wapi domain info <domain>` - Get domain information with sensitive data filtering
+  - `wapi domain update-ns <domain>` - Update domain nameservers
+    - `--nsset <name>` - Use existing NSSET
+    - `--nameserver <ns>` - Add nameserver (can be used multiple times)
+    - `--source-domain <domain>` - Copy nameservers from another domain
+    - `--wait` - Wait for async operation completion
+- Sensitive data filtering
+  - All personal information (email, phone, address, etc.) filtered from output
+  - Sensitive fields show as `[HIDDEN]` in output
+- API client enhancements
+  - `domain_update_ns()` method with automatic NSSET creation
+  - Support for existing NSSET assignment
+  - Nameserver copying from source domain
+
+### Tested
+- Domain info tested with spravuju.cz - working correctly
+- Sensitive data filtering verified
+- Domain structure analyzed and documented
 
 ## [0.1.0] - 2025-01-05
 

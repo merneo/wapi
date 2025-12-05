@@ -61,10 +61,6 @@ def cmd_domain_list(args, client: WedosAPIClient) -> int:
                     'nsset': domain.get('nsset', '')
                 })
         
-        # Filter out sensitive domains (armlab.cz)
-        sensitive_domains = ['armlab.cz']
-        domain_list = [d for d in domain_list if d['name'].lower() not in [sd.lower() for sd in sensitive_domains]]
-        
         # Filter by TLD if specified
         if hasattr(args, 'tld') and args.tld:
             domain_list = [d for d in domain_list if d['name'].endswith(f'.{args.tld}')]

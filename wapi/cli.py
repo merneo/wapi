@@ -105,10 +105,10 @@ def main():
     update_ns_parser.set_defaults(func=cmd_domain_update_ns)
     
     # NSSET module
+    from .commands.nsset import cmd_nsset_create, cmd_nsset_info, cmd_nsset_list
+    
     nsset_parser = subparsers.add_parser('nsset', help='NSSET management')
     nsset_subparsers = nsset_parser.add_subparsers(dest='command', help='Command')
-    
-    from .commands.nsset import cmd_nsset_create, cmd_nsset_info, cmd_nsset_list
     
     create_parser = nsset_subparsers.add_parser('create', help='Create new NSSET')
     create_parser.add_argument('name', help='NSSET name')
@@ -119,12 +119,12 @@ def main():
     create_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
     create_parser.set_defaults(func=cmd_nsset_create)
     
-    info_parser = nsset_subparsers.add_parser('info', help='Get NSSET information')
-    info_parser.add_argument('name', help='NSSET name')
-    info_parser.set_defaults(func=cmd_nsset_info)
+    nsset_info_parser = nsset_subparsers.add_parser('info', help='Get NSSET information')
+    nsset_info_parser.add_argument('name', help='NSSET name')
+    nsset_info_parser.set_defaults(func=cmd_nsset_info)
     
-    list_parser = nsset_subparsers.add_parser('list', aliases=['-l'], help='List NSSETs')
-    list_parser.set_defaults(func=cmd_nsset_list)
+    nsset_list_parser = nsset_subparsers.add_parser('list', aliases=['-l'], help='List NSSETs')
+    nsset_list_parser.set_defaults(func=cmd_nsset_list)
     
     # Parse arguments
     args = parser.parse_args()

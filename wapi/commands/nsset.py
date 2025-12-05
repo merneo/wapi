@@ -62,7 +62,8 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
 
 def cmd_nsset_info(args, client: WedosAPIClient) -> int:
     """Handle nsset info command"""
-    result = client.call("nsset-info", {"name": args.name})
+    # Try both parameter formats
+    result = client.call("nsset-info", {"nsset": args.name})
     response = result.get('response', {})
     code = response.get('code')
     

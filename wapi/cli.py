@@ -58,6 +58,7 @@ def cmd_ping(args, client: WedosAPIClient):
 
 # Import command handlers
 from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
+from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
 
 
 def main():
@@ -128,6 +129,58 @@ def main():
     nsset_list_parser = nsset_subparsers.add_parser('list', aliases=['-l'], help='List NSSETs')
     nsset_list_parser.set_defaults(func=cmd_nsset_list)
     
+    # Contact module
+    from .commands.contact import cmd_contact_info, cmd_contact_list
+    
+    contact_parser = subparsers.add_parser('contact', help='Contact management')
+    contact_subparsers = contact_parser.add_subparsers(dest='command', help='Command')
+    
+    contact_info_parser = contact_subparsers.add_parser('info', help='Get contact information')
+    contact_info_parser.add_argument('handle', help='Contact handle')
+    contact_info_parser.set_defaults(func=cmd_contact_info)
+    
+    contact_list_parser = contact_subparsers.add_parser('list', aliases=['-l'], help='List contacts')
+    contact_list_parser.set_defaults(func=cmd_contact_list)
+    
+    # Config module
+    from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
+    
+    config_parser = subparsers.add_parser('config', help='Configuration management')
+    config_subparsers = config_parser.add_subparsers(dest='command', help='Command')
+    
+    config_show_parser = config_subparsers.add_parser('show', help='Show configuration')
+    config_show_parser.set_defaults(func=cmd_config_show)
+    
+    config_validate_parser = config_subparsers.add_parser('validate', help='Validate configuration')
+    config_validate_parser.set_defaults(func=cmd_config_validate)
+    
+    config_set_parser = config_subparsers.add_parser('set', help='Set configuration value')
+    config_set_parser.add_argument('key', help='Configuration key')
+    config_set_parser.add_argument('value', help='Configuration value')
+    config_set_parser.set_defaults(func=cmd_config_set)
+    
+    # DNS module
+    from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_delete
+    
+    dns_parser = subparsers.add_parser('dns', help='DNS management')
+    dns_subparsers = dns_parser.add_subparsers(dest='command', help='Command')
+    
+    dns_list_parser = dns_subparsers.add_parser('list', aliases=['-l'], help='List nameservers for domain')
+    dns_list_parser.add_argument('domain', help='Domain name')
+    dns_list_parser.set_defaults(func=cmd_dns_list)
+    
+    dns_record_list_parser = dns_subparsers.add_parser('records', help='List DNS records')
+    dns_record_list_parser.add_argument('domain', help='Domain name')
+    dns_record_list_parser.set_defaults(func=cmd_dns_record_list)
+    
+    dns_record_add_parser = dns_subparsers.add_parser('add', help='Add DNS record')
+    dns_record_add_parser.add_argument('domain', help='Domain name')
+    dns_record_add_parser.set_defaults(func=cmd_dns_record_add)
+    
+    dns_record_delete_parser = dns_subparsers.add_parser('delete', help='Delete DNS record')
+    dns_record_delete_parser.add_argument('domain', help='Domain name')
+    dns_record_delete_parser.set_defaults(func=cmd_dns_record_delete)
+    
     # Parse arguments
     args = parser.parse_args()
     
@@ -147,7 +200,11 @@ def main():
     
     # Execute command
     if hasattr(args, 'func'):
-        return args.func(args, client)
+        # Some commands don't need client (config commands)
+        if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
+            return args.func(args)
+        else:
+            return args.func(args, client)
     else:
         print(f"Error: Command not implemented yet", file=sys.stderr)
         return 1

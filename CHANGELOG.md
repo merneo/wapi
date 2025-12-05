@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### In Progress
+- Phase 5: NSSET module
+
 ### Planned
 - Phase 4: Domain module
 - Phase 5: NSSET module
@@ -33,6 +36,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All modules tested with production WAPI
 - Domain info tested with armlab.cz domain
 - Ping command verified working
+
+## [0.3.0] - 2025-01-05
+
+### Added
+- Phase 3: CLI framework and basic commands
+  - `wapi/cli.py` - Main CLI parser with argparse
+  - `wapi/__main__.py` - Module entry point for `python -m wapi`
+  - `wapi/utils/formatters.py` - Output formatting (table, JSON, XML, YAML)
+- Implemented commands:
+  - `wapi auth ping` - Test API connection
+  - `wapi domain info <domain>` - Get domain information
+- Global options:
+  - `--config <file>` - Specify configuration file
+  - `--format <format>` - Output format (table, json, xml, yaml)
+  - `--verbose / -v` - Verbose output
+  - `--quiet / -q` - Quiet mode
+
+### Tested
+- CLI commands tested with armlab.cz domain
+- All output formats verified working
+- Ping and domain info commands functional
 
 ## [0.1.0] - 2025-01-05
 

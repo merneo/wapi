@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `--quiet / -q` - Quiet mode
 
 ### Tested
-- CLI commands tested with armlab.cz domain
+- CLI commands tested with spravuju.cz domain
 - All output formats verified working
 - Ping and domain info commands functional
 
@@ -130,7 +130,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `wapi nsset list` - List NSSETs (stub for future implementation)
 
 ### Changed
-- Removed all references to armlab.cz
 - Use spravuju.cz for CZ domain testing
 - Use linuxloser.com for COM domain testing
 

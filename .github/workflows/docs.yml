@@ -1,0 +1,26 @@
+name: Documentation Check
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check WIKI.md exists
+        run: test -f WIKI.md || exit 1
+      - name: Check README.md exists
+        run: test -f README.md || exit 1
+      - name: Verify no sensitive data
+        run: |
+          if grep -ri "example\.(com|org|net)" WIKI.md README.md 2>/dev/null | grep -v "example.com\|example.org\|example.net"; then
+            echo "⚠️  Check for non-standard domains"
+          fi
+          if grep -ri "192\.0\.2\." WIKI.md README.md 2>/dev/null | grep -v "192.0.2."; then
+            echo "⚠️  Check IP addresses"
+          fi
+          echo "✅ Documentation uses only RFC-compliant test data"

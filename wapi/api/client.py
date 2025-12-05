@@ -92,11 +92,17 @@ class WedosAPIClient:
             root = ET.fromstring(response_text)
             result = {}
             
-            for child in root:
-                if child.tag == "response":
-                    result["response"] = self._parse_xml_element(child)
+            # WAPI XML response structure: <response> is the root or a child
+            if root.tag == "response":
+                result["response"] = self._parse_xml_element(root)
+            else:
+                # Look for response element
+                response_elem = root.find("response")
+                if response_elem is not None:
+                    result["response"] = self._parse_xml_element(response_elem)
                 else:
-                    result[child.tag] = self._parse_xml_element(child)
+                    # Parse root as response
+                    result["response"] = self._parse_xml_element(root)
             
             return result
         except ET.ParseError as e:
@@ -110,19 +116,25 @@ class WedosAPIClient:
     def _parse_xml_element(self, element: ET.Element) -> Any:
         """Recursively parse XML element to Python structure"""
         if len(element) == 0:
-            # Leaf node
-            return element.text if element.text else ""
+            # Leaf node - return text content
+            text = element.text.strip() if element.text else ""
+            # Try to convert to int if it's a number
+            if text.isdigit():
+                return int(text)
+            return text
         
         # Has children
         result = {}
         for child in element:
+            child_value = self._parse_xml_element(child)
+            
             if child.tag in result:
                 # Multiple children with same tag - convert to list
                 if not isinstance(result[child.tag], list):
                     result[child.tag] = [result[child.tag]]
-                result[child.tag].append(self._parse_xml_element(child))
+                result[child.tag].append(child_value)
             else:
-                result[child.tag] = self._parse_xml_element(child)
+                result[child.tag] = child_value
         
         return result
     

@@ -56,19 +56,8 @@ def cmd_ping(args, client: WedosAPIClient):
         return 1
 
 
-def cmd_domain_info(args, client: WedosAPIClient):
-    """Handle domain info command"""
-    result = client.domain_info(args.domain)
-    response = result.get('response', {})
-    code = response.get('code')
-    
-    if code == '1000' or code == 1000:
-        domain = response.get('data', {}).get('domain', {})
-        print(format_output(domain, args.format))
-        return 0
-    else:
-        print(f"Error ({code}): {response.get('result', 'Unknown error')}", file=sys.stderr)
-        return 1
+# Import command handlers
+from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
 
 
 def main():
@@ -104,6 +93,17 @@ def main():
     info_parser.add_argument('domain', help='Domain name')
     info_parser.set_defaults(func=cmd_domain_info)
     
+    list_parser = domain_subparsers.add_parser('list', aliases=['-l'], help='List domains')
+    list_parser.set_defaults(func=cmd_domain_list)
+    
+    update_ns_parser = domain_subparsers.add_parser('update-ns', help='Update domain nameservers')
+    update_ns_parser.add_argument('domain', help='Domain name')
+    update_ns_parser.add_argument('--nsset', help='Use existing NSSET')
+    update_ns_parser.add_argument('--nameserver', action='append', help='Nameserver (name:ipv4:ipv6)')
+    update_ns_parser.add_argument('--source-domain', help='Copy nameservers from another domain')
+    update_ns_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    update_ns_parser.set_defaults(func=cmd_domain_update_ns)
+    
     # Parse arguments
     args = parser.parse_args()
     
@@ -111,6 +111,10 @@ def main():
     if not args.module:
         parser.print_help()
         return 1
+    
+    # Ensure format is available in args (for commands that need it)
+    if not hasattr(args, 'format'):
+        args.format = 'table'
     
     # Get API client
     client = get_client(args.config)

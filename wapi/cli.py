@@ -60,6 +60,7 @@ def cmd_ping(args, client: WedosAPIClient):
 from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
 from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
 from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
+from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
 
 
 def main():
@@ -164,7 +165,7 @@ def main():
     config_set_parser.set_defaults(func=cmd_config_set)
     
     # DNS module
-    from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_delete
+    from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
     
     dns_parser = subparsers.add_parser('dns', help='DNS management')
     dns_subparsers = dns_parser.add_subparsers(dest='command', help='Command')

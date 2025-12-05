@@ -137,6 +137,7 @@ def main():
     
     contact_info_parser = contact_subparsers.add_parser('info', help='Get contact information')
     contact_info_parser.add_argument('handle', help='Contact handle')
+    contact_info_parser.add_argument('--tld', default='cz', help='Top-level domain (default: cz)')
     contact_info_parser.set_defaults(func=cmd_contact_info)
     
     contact_list_parser = contact_subparsers.add_parser('list', aliases=['-l'], help='List contacts')

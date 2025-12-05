@@ -35,8 +35,18 @@ def filter_sensitive_contact_data(contact: Dict[str, Any]) -> Dict[str, Any]:
 
 def cmd_contact_info(args, client: WedosAPIClient) -> int:
     """Handle contact info command"""
-    # Try different parameter formats
-    result = client.call("contact-info", {"contact": args.handle})
+    # Determine TLD - from argument or default to 'cz'
+    tld = 'cz'  # Default
+    
+    if hasattr(args, 'tld') and args.tld:
+        tld = args.tld
+    else:
+        # Try to extract from contact handle (e.g., FORPSI-VVN-S638343)
+        # Most CZ contacts don't have TLD in handle, default to cz
+        pass
+    
+    # WAPI contact-info requires 'name' and 'tld' parameters (similar to nsset-info)
+    result = client.call("contact-info", {"name": args.handle, "tld": tld})
     response = result.get('response', {})
     code = response.get('code')
     

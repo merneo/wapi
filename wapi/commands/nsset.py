@@ -62,8 +62,18 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
 
 def cmd_nsset_info(args, client: WedosAPIClient) -> int:
     """Handle nsset info command"""
-    # Try both parameter formats
-    result = client.call("nsset-info", {"nsset": args.name})
+    # Extract TLD from NSSET name or use default
+    tld = 'cz'  # Default
+    if args.tld:
+        tld = args.tld
+    elif '.' in args.name:
+        # Try to extract from name if it contains domain
+        parts = args.name.split('.')
+        if len(parts) > 1:
+            tld = parts[-1]
+    
+    # WAPI requires both nsset and tld parameters
+    result = client.call("nsset-info", {"nsset": args.name, "tld": tld})
     response = result.get('response', {})
     code = response.get('code')
     

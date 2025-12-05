@@ -18,8 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DNS Record Update**: `wapi dns update <domain> --id <id>` command for updating DNS records
   - Support for updating name, type, value, and TTL
   - `--wait` flag support with polling
+- **Unit Tests**: Comprehensive test suite
+  - `tests/test_validators.py` - Tests for domain, IPv4, IPv6, nameserver, email validation
+  - `tests/test_formatters.py` - Tests for table, JSON, XML, YAML output formatting
 - Progress indicators during polling (when not in quiet mode)
 - Timeout handling (default: 60 attempts × 10 seconds = 10 minutes)
+
+### Improved
+- **Error Messages**: Better error messages with context
+  - DNS update now shows clear message when no fields specified
+  - More descriptive validation error messages
+- **Documentation**: Updated WIKI.md and COMMAND_REFERENCE.md with DNS update examples
 
 ### Changed
 - `--wait` flag now actually waits for async operations to complete

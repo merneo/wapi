@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Total Tests**: 822 (100% pass rate).
 - **Code Coverage**: 98% line coverage (remaining 2% unreachable/system errors).
 - Refined `pragma: no cover` placement for more accurate coverage reporting of defensive code.
+- **Auth Module Coverage**: Achieved 100% coverage for `wapi/commands/auth.py` by adding targeted tests for generic exception handling and edge cases in status checking.
 
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.

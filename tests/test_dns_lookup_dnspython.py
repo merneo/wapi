@@ -52,10 +52,11 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             # Reload module to pick up mocked dns
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_gethostbyaddr.return_value = ('hostname.example.com', [], ['192.0.2.1'])
                 
                 mock_answer = Mock()
@@ -63,7 +64,7 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
                 self.mock_resolver.resolve.return_value = [mock_answer]
                 mock_validate.return_value = (True, None)
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
+                result = dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
                 
                 self.assertEqual(result, '2001:db8::1')
                 self.mock_resolver.resolve.assert_called_once_with('hostname.example.com', 'AAAA')
@@ -75,10 +76,11 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_ipv4 with dnspython invalid IPv6 (lines 74-76)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_gethostbyaddr.return_value = ('hostname.example.com', [], ['192.0.2.1'])
                 
                 mock_answer = Mock()
@@ -86,7 +88,7 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
                 self.mock_resolver.resolve.return_value = [mock_answer]
                 mock_validate.return_value = (False, "Invalid format")
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
+                result = dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -96,14 +98,15 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_ipv4 with dnspython timeout (lines 77-78)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_gethostbyaddr.return_value = ('hostname.example.com', [], ['192.0.2.1'])
                 self.mock_resolver.resolve.side_effect = self.mock_resolver_module.Timeout()
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
+                result = dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -113,14 +116,15 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_ipv4 with dnspython no answer (lines 79-80)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_gethostbyaddr.return_value = ('hostname.example.com', [], ['192.0.2.1'])
                 self.mock_resolver.resolve.side_effect = self.mock_resolver_module.NoAnswer()
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
+                result = dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -130,14 +134,14 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_ipv4 with dnspython exception (lines 81-82)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_gethostbyaddr.return_value = ('hostname.example.com', [], ['192.0.2.1'])
                 self.mock_resolver.resolve.side_effect = Exception("Unexpected error")
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
+                result = dns_lookup.get_ipv6_from_ipv4('192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -146,16 +150,17 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython success (lines 130-141)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_answer = Mock()
                 mock_answer.__str__ = Mock(return_value='2001:db8::1')
                 self.mock_resolver.resolve.return_value = [mock_answer]
                 mock_validate.return_value = (True, None)
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertEqual(result, '2001:db8::1')
                 self.mock_resolver.resolve.assert_called_once_with('ns1.example.com', 'AAAA')
@@ -165,16 +170,17 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython invalid IPv6 (lines 142-144)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            importlib.reload(importlib.import_module("wapi.utils.dns_lookup"))
+            dns_lookup = sys.modules["wapi.utils.dns_lookup"]
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 mock_answer = Mock()
                 mock_answer.__str__ = Mock(return_value='invalid-ipv6')
                 self.mock_resolver.resolve.return_value = [mock_answer]
                 mock_validate.return_value = (False, "Invalid format")
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -182,13 +188,13 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython timeout (lines 145-146)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            dns_lookup = importlib.import_module("wapi.utils.dns_lookup")
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 self.mock_resolver.resolve.side_effect = self.mock_resolver_module.Timeout()
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -196,13 +202,13 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython no answer (lines 147-148)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            dns_lookup = importlib.import_module("wapi.utils.dns_lookup")
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 self.mock_resolver.resolve.side_effect = self.mock_resolver_module.NoAnswer()
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -210,13 +216,13 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython no nameservers (line 147)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            dns_lookup = importlib.import_module("wapi.utils.dns_lookup")
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 self.mock_resolver.resolve.side_effect = self.mock_resolver_module.NoNameservers()
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertIsNone(result)
 
@@ -224,13 +230,13 @@ class TestDNSLookupDNSPythonPaths(unittest.TestCase):
         """Test get_ipv6_from_nameserver with dnspython exception (lines 149-150)"""
         with patch.dict(sys.modules, {'dns': self.mock_dns, 'dns.resolver': self.mock_resolver_module}):
             import importlib
-            import wapi.utils.dns_lookup
-            importlib.reload(wapi.utils.dns_lookup)
+            sys.modules.pop("wapi.utils.dns_lookup", None)
+            dns_lookup = importlib.import_module("wapi.utils.dns_lookup")
             
-            with patch.object(wapi.utils.dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
+            with patch.object(dns_lookup, 'DNS_PYTHON_AVAILABLE', True):
                 self.mock_resolver.resolve.side_effect = Exception("Unexpected error")
                 
-                result = wapi.utils.dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
+                result = dns_lookup.get_ipv6_from_nameserver('ns1.example.com', '192.0.2.1')
                 
                 self.assertIsNone(result)
 

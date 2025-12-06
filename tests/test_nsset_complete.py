@@ -7,7 +7,7 @@ Tests for missing lines: edge cases in NSSET commands.
 import unittest
 from unittest.mock import Mock, patch
 
-from wapi.commands.nsset import cmd_nsset_create, cmd_nsset_info
+from wapi.commands.nsset import cmd_nsset_create, cmd_nsset_info, cmd_nsset_list
 from wapi.constants import EXIT_SUCCESS
 from wapi.exceptions import WAPIValidationError, WAPIRequestError
 
@@ -753,6 +753,53 @@ class TestNSSETInfoEdgeCases(unittest.TestCase):
         # Verify TLD was used from argument
         call_args = self.mock_client.call.call_args
         self.assertEqual(call_args[0][1]['tld'], 'sk')
+
+
+class TestNSSETList(unittest.TestCase):
+    """Test cmd_nsset_list scenarios"""
+
+    def setUp(self):
+        self.mock_client = Mock()
+        self.mock_args = Mock()
+        self.mock_args.format = 'table'
+
+    @patch('wapi.commands.nsset.format_output')
+    @patch('wapi.commands.nsset.get_logger')
+    def test_nsset_list_success_single_item(self, mock_get_logger, mock_format):
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+
+        # API returns single dict; should be normalized to list
+        self.mock_client.call.return_value = {
+            'response': {
+                'code': '1000',
+                'data': {
+                    'nsset': {'name': 'NS-ONE'}
+                }
+            }
+        }
+
+        result = cmd_nsset_list(self.mock_args, self.mock_client)
+
+        self.assertEqual(result, EXIT_SUCCESS)
+        mock_format.assert_called_once()
+        mock_logger.info.assert_called_once()
+
+    @patch('wapi.commands.nsset.get_logger')
+    def test_nsset_list_error_not_implemented(self, mock_get_logger):
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+
+        # Non-success code triggers not-implemented branch and raises
+        self.mock_client.call.return_value = {
+            'response': {
+                'code': '2000',
+                'result': 'Not implemented'
+            }
+        }
+
+        with self.assertRaises(WAPIRequestError):
+            cmd_nsset_list(self.mock_args, self.mock_client)
 
 
 if __name__ == '__main__':

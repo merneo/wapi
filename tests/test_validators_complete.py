@@ -32,6 +32,25 @@ class TestValidatorsComplete(unittest.TestCase):
         domain = 'a' * 250 + '.com'  # Should be valid
         is_valid, error = validate_domain(domain)
         # May be valid or invalid depending on format, but should not fail on length
+        self.assertIsNotNone(is_valid)
+
+    def test_validate_domain_empty(self):
+        """Empty domain should fail"""
+        is_valid, error = validate_domain('')
+        self.assertFalse(is_valid)
+        self.assertIn('cannot be empty', error.lower())
+
+    def test_validate_domain_invalid_format(self):
+        """Domain with invalid characters should fail"""
+        is_valid, error = validate_domain('invalid_domain.com')
+        self.assertFalse(is_valid)
+        self.assertIn('invalid domain name format', error.lower())
+
+    def test_validate_domain_missing_dot(self):
+        """Domain without dot should fail"""
+        is_valid, error = validate_domain('localhost')
+        self.assertFalse(is_valid)
+        self.assertIn('at least one dot', error.lower())
 
     def test_validate_ipv4_value_error(self):
         """Test validate_ipv4 with ValueError (line 83-84)"""
@@ -40,6 +59,18 @@ class TestValidatorsComplete(unittest.TestCase):
         is_valid, error = validate_ipv4(invalid_ip)
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
+
+    def test_validate_ipv4_empty(self):
+        """Empty IPv4 should fail"""
+        is_valid, error = validate_ipv4('')
+        self.assertFalse(is_valid)
+        self.assertIn('cannot be empty', error.lower())
+
+    def test_validate_ipv4_not_four_parts(self):
+        """IPv4 with wrong octet count should fail"""
+        is_valid, error = validate_ipv4('1.2.3')
+        self.assertFalse(is_valid)
+        self.assertIn('4 octets', error)
 
     def test_validate_ipv4_negative_octet(self):
         """Test validate_ipv4 with negative octet"""
@@ -70,6 +101,13 @@ class TestValidatorsComplete(unittest.TestCase):
         self.assertIsNone(parsed)
         self.assertIsNotNone(error)
 
+    def test_validate_nameserver_missing_ipv4_allowed(self):
+        """Nameserver with empty IPv4 is allowed (legacy flexibility)"""
+        is_valid, parsed, error = validate_nameserver('ns1.example.com:')
+        self.assertTrue(is_valid)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed['addr_ipv4'], '')
+
     def test_validate_nameserver_invalid_domain_name(self):
         """Test validate_nameserver with invalid domain name"""
         # Valid format but invalid domain
@@ -94,6 +132,12 @@ class TestValidatorsComplete(unittest.TestCase):
         self.assertIsNone(parsed)
         self.assertIn('Invalid IPv6', error)
 
+    def test_validate_nameserver_no_ipv6(self):
+        """Nameserver without IPv6 returns empty addr_ipv6"""
+        is_valid, parsed, error = validate_nameserver('ns1.example.com:192.0.2.1')
+        self.assertTrue(is_valid)
+        self.assertEqual(parsed['addr_ipv6'], '')
+
     def test_validate_nameserver_with_ipv6(self):
         """Test validate_nameserver with valid IPv6"""
         is_valid, parsed, error = validate_nameserver('ns1.example.com:192.0.2.1:2001:db8::1')
@@ -110,6 +154,13 @@ class TestValidatorsComplete(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed['addr_ipv6'], '2001:0db8:0000:0000:0000:0000:0000:0001')
+
+    def test_validate_nameserver_bare_hostname_allowed(self):
+        """Bare hostname without dot should be allowed for local use"""
+        is_valid, parsed, error = validate_nameserver('ns1:192.0.2.1')
+        self.assertTrue(is_valid)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed['name'], 'ns1')
 
     def test_validate_email_invalid_format(self):
         """Test validate_email with invalid format"""
@@ -139,6 +190,12 @@ class TestValidatorsComplete(unittest.TestCase):
             is_valid, error = validate_email(email)
             self.assertTrue(is_valid, f"Email {email} should be valid: {error}")
 
+    def test_validate_email_empty(self):
+        """Empty email should fail"""
+        is_valid, error = validate_email('')
+        self.assertFalse(is_valid)
+        self.assertIn('cannot be empty', error.lower())
+
     def test_validate_ipv6_compressed_format(self):
         """Test validate_ipv6 with compressed format (::)"""
         valid_ipv6 = [
@@ -164,6 +221,12 @@ class TestValidatorsComplete(unittest.TestCase):
         is_valid, error = validate_ipv6(invalid_ip)
         self.assertFalse(is_valid)
         self.assertIn('Invalid', error)
+
+    def test_validate_ipv6_empty(self):
+        """Empty IPv6 should fail"""
+        is_valid, error = validate_ipv6('')
+        self.assertFalse(is_valid)
+        self.assertIn('cannot be empty', error.lower())
 
 
 if __name__ == '__main__':

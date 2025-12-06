@@ -20,6 +20,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auth & Interactive Module Coverage**: Achieved 100% coverage for `wapi/commands/auth.py` and `wapi/utils/interactive.py` by adding targeted tests for generic exception handling, edge cases in status checking, and interactive shell error resilience.
 - **Domain Module Coverage Status**: `wapi/commands/domain.py` remains at 95% line coverage. The remaining uncovered lines are in defensive error handling and polling timeout branches. Functional tests exist for these scenarios, but `coverage.py` consistently reports them as missed, indicating a tool-specific reporting limitation rather than a lack of testing.
 
+### Fixed - DNS Lookup Coverage (2025-12-06)
+- Raised `wapi/utils/dns_lookup.py` to **100% line coverage** by adding dnspython timeout and unexpected error scenarios, plus invalid AAAA record handling.
+- Expanded dns lookup test matrix to cover fallback paths without hitting real network calls (45 total cases now).
+- Ensured future coverage recalculations reflect the dns lookup gains.
+
+### Fixed - NSSET Coverage (2025-12-06)
+- Raised `wapi/commands/nsset.py` to **100% line coverage** by adding tests for list success/error paths and normalizing single nsset responses.
+- Covered TLD detection, async polling, IPv6 discovery messaging, and error tips end-to-end.
+- Added two new tests to the nsset suite (now 24 cases) to lock in branch coverage.
+
+### Fixed - DNS Coverage (2025-12-06)
+- Raised `wapi/commands/dns.py` to **100% line coverage** (271/271) by adding validation/error-path tests for domain listing and dns-row listing error codes.
+- Expanded `tests/test_dns_complete.py` with 5 new cases to cover invalid domain, missing DNS data, and non-success responses for list operations.
+- All DNS record add/update/delete async branches remain fully covered; overall DNS module coverage now matches target.
+
+### Fixed - Domain & Validators Coverage (2025-12-06)
+- Raised `wapi/commands/domain.py` to **100% line coverage** by adding async wait/no-wait tests for create/renew/update, including timeout and warning branches.
+- Restored `wapi/utils/validators.py` to **100% coverage** by exercising empty input, invalid formats, missing dot, and bare-hostname allowances.
+- Full test suite now at **100% overall coverage** with 864 passing tests.
+
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.
 - Reset input error counters after successful reads and exit with a non-zero status after consecutive failures to avoid infinite loops in CI and local testing.

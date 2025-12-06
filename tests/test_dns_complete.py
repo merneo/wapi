@@ -117,6 +117,66 @@ class TestDNSListEdgeCases(unittest.TestCase):
         
         self.assertIn("No DNS information available", str(context.exception))
 
+    @patch('wapi.commands.dns.get_logger')
+    @patch('wapi.commands.dns.validate_domain')
+    def test_dns_list_invalid_domain(self, mock_validate, mock_get_logger):
+        """Invalid domain triggers validation error path (lines 29-33)"""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (False, "bad domain")
+
+        self.mock_args.domain = 'invalid-domain'
+        self.mock_args.format = 'table'
+
+        with self.assertRaises(WAPIValidationError):
+            cmd_dns_list(self.mock_args, self.mock_client)
+
+    @patch('wapi.commands.dns.get_logger')
+    @patch('wapi.commands.dns.validate_domain')
+    def test_dns_list_no_dns_data(self, mock_validate, mock_get_logger):
+        """No dns data and no server key raises request error (lines 61-63)"""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (True, None)
+
+        self.mock_args.domain = 'example.com'
+        self.mock_args.format = 'table'
+
+        self.mock_client.domain_info.return_value = {
+            'response': {
+                'code': '1000',
+                'data': {
+                    'domain': {
+                        'dns': {}
+                    }
+                }
+            }
+        }
+
+        with self.assertRaises(WAPIRequestError):
+            cmd_dns_list(self.mock_args, self.mock_client)
+
+    @patch('wapi.commands.dns.get_logger')
+    @patch('wapi.commands.dns.validate_domain')
+    def test_dns_list_error_code(self, mock_validate, mock_get_logger):
+        """Non-1000 code raises request error (lines 73-76)"""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (True, None)
+
+        self.mock_args.domain = 'example.com'
+        self.mock_args.format = 'table'
+
+        self.mock_client.domain_info.return_value = {
+            'response': {
+                'code': '2000',
+                'result': 'fail'
+            }
+        }
+
+        with self.assertRaises(WAPIRequestError):
+            cmd_dns_list(self.mock_args, self.mock_client)
+
 
 class TestDNSRecordListEdgeCases(unittest.TestCase):
     """Test cmd_dns_record_list edge cases"""
@@ -152,6 +212,41 @@ class TestDNSRecordListEdgeCases(unittest.TestCase):
         
         self.assertEqual(result, EXIT_SUCCESS)
         mock_format.assert_called_once()
+
+    @patch('wapi.commands.dns.get_logger')
+    @patch('wapi.commands.dns.validate_domain')
+    def test_dns_record_list_invalid_domain(self, mock_validate, mock_get_logger):
+        """Invalid domain raises validation error (lines 83-87)"""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (False, "bad domain")
+
+        self.mock_args.domain = 'invalid-domain'
+        self.mock_args.format = 'table'
+
+        with self.assertRaises(WAPIValidationError):
+            cmd_dns_record_list(self.mock_args, self.mock_client)
+
+    @patch('wapi.commands.dns.get_logger')
+    @patch('wapi.commands.dns.validate_domain')
+    def test_dns_record_list_error_response(self, mock_validate, mock_get_logger):
+        """Non-1000 response raises request error (lines 116-120)"""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (True, None)
+
+        self.mock_args.domain = 'example.com'
+        self.mock_args.format = 'table'
+
+        self.mock_client.call.return_value = {
+            'response': {
+                'code': '2000',
+                'result': 'fail'
+            }
+        }
+
+        with self.assertRaises(WAPIRequestError):
+            cmd_dns_record_list(self.mock_args, self.mock_client)
 
 
 class TestDNSRecordAddEdgeCases(unittest.TestCase):

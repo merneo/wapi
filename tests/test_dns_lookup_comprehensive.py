@@ -105,6 +105,28 @@ class TestGetIPv6FromIPv4:
             result = get_ipv6_from_ipv4("1.2.3.4")
         assert result is None
 
+    def test_dnspython_timeout_exception(self, mock_socket, mock_dns_resolver):
+        import dns.resolver
+
+        mock_socket.gethostbyaddr.return_value = ("host.example.com", [], [])
+        mock_socket.getaddrinfo.return_value = []
+        mock_dns_resolver.return_value.resolve.side_effect = dns.resolver.Timeout()
+
+        with setup_dns_available(True):
+            result = get_ipv6_from_ipv4("1.2.3.4")
+
+        assert result is None
+
+    def test_dnspython_unexpected_exception(self, mock_socket, mock_dns_resolver):
+        mock_socket.gethostbyaddr.return_value = ("host.example.com", [], [])
+        mock_socket.getaddrinfo.return_value = []
+        mock_dns_resolver.return_value.resolve.side_effect = RuntimeError("boom")
+
+        with setup_dns_available(True):
+            result = get_ipv6_from_ipv4("1.2.3.4")
+
+        assert result is None
+
 
 class TestGetIPv6FromNameserver:
     
@@ -156,6 +178,41 @@ class TestGetIPv6FromNameserver:
             result = get_ipv6_from_nameserver("ns1.example.com", "1.2.3.4")
             
         assert result == "2001:db8::1"
+
+    @patch('wapi.utils.dns_lookup.validate_ipv6', return_value=(False, "Invalid"))
+    def test_direct_aaaa_invalid_ipv6(self, mock_validate, mock_dns_resolver, mock_socket):
+        mock_answer = MagicMock()
+        mock_answer.__str__.return_value = "invalid-ipv6"
+        mock_dns_resolver.return_value.resolve.return_value = [mock_answer]
+        mock_socket.getaddrinfo.return_value = []
+
+        with setup_dns_available(True):
+            result = get_ipv6_from_nameserver("ns1.example.com", "1.2.3.4")
+
+        assert result is None
+        mock_validate.assert_called_once()
+
+    @patch('wapi.utils.dns_lookup.get_ipv6_from_ipv4', return_value=None)
+    def test_direct_aaaa_timeout_exception(self, mock_get_ipv6, mock_dns_resolver, mock_socket):
+        import dns.resolver
+
+        mock_dns_resolver.return_value.resolve.side_effect = dns.resolver.Timeout()
+        mock_socket.getaddrinfo.return_value = []
+
+        with setup_dns_available(True):
+            result = get_ipv6_from_nameserver("ns1.example.com", "1.2.3.4")
+
+        assert result is None
+
+    @patch('wapi.utils.dns_lookup.get_ipv6_from_ipv4', return_value=None)
+    def test_direct_aaaa_unexpected_exception(self, mock_get_ipv6, mock_dns_resolver, mock_socket):
+        mock_dns_resolver.return_value.resolve.side_effect = RuntimeError("boom")
+        mock_socket.getaddrinfo.return_value = []
+
+        with setup_dns_available(True):
+            result = get_ipv6_from_nameserver("ns1.example.com", "1.2.3.4")
+
+        assert result is None
 
 
 class TestEnhanceNameserver:

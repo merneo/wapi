@@ -7,7 +7,12 @@ Tests to cover lines 162-164, 246-247, 278, 286, 290-305, 338-341.
 import unittest
 from unittest.mock import Mock, patch
 
-from wapi.commands.domain import cmd_domain_update_ns
+from wapi.commands.domain import (
+    cmd_domain_update_ns,
+    cmd_domain_create,
+    cmd_domain_renew,
+    cmd_domain_update,
+)
 from wapi.constants import EXIT_SUCCESS, API_SUCCESS, API_ASYNC
 from wapi.exceptions import WAPIValidationError, WAPIRequestError
 
@@ -363,6 +368,304 @@ class TestDomainRemainingLines(unittest.TestCase):
         
         result = cmd_domain_update_ns(self.mock_args, self.mock_client)
         
+        self.assertEqual(result, EXIT_SUCCESS)
+
+
+# --- Additional coverage for async branches in domain create/renew/update ---
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_create_async_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.owner_c = None
+        args.admin_c = None
+        args.nsset = None
+        args.keyset = None
+        args.auth_info = None
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_create.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        def fake_poll(cmd, params, is_complete, **kwargs):
+            poll_res = {'response': {'code': '1000', 'data': {}}}
+            # Execute completion check to cover lines 399-401
+            self.assertTrue(is_complete(poll_res))
+            return poll_res
+
+        self.mock_client.poll_until_complete.side_effect = fake_poll
+
+        result = cmd_domain_create(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        self.mock_client.poll_until_complete.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_create_async_no_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.owner_c = None
+        args.admin_c = None
+        args.nsset = None
+        args.keyset = None
+        args.auth_info = None
+        args.wait = False
+        args.format = 'table'
+
+        self.mock_client.domain_create.return_value = {
+            'response': {'code': '1001', 'data': {'result': 'async'}}
+        }
+
+        result = cmd_domain_create(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        mock_format.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_renew_async_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_renew.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        def fake_poll(cmd, params, is_complete, **kwargs):
+            poll_res = {'response': {'code': '1000', 'data': {}}}
+            # Cover check_domain_renewed (lines 516-523)
+            self.assertTrue(is_complete(poll_res))
+            return poll_res
+
+        self.mock_client.poll_until_complete.side_effect = fake_poll
+
+        result = cmd_domain_renew(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        self.mock_client.poll_until_complete.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_renew_async_no_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.wait = False
+        args.format = 'table'
+
+        self.mock_client.domain_renew.return_value = {
+            'response': {'code': '1001', 'data': {'result': 'async'}}
+        }
+
+        result = cmd_domain_renew(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        mock_format.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_update_async_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.owner_c = None
+        args.admin_c = None
+        args.tech_c = None
+        args.nsset = None
+        args.keyset = None
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_update.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        def fake_poll(cmd, params, is_complete, **kwargs):
+            poll_res = {'response': {'code': '1000', 'data': {}}}
+            # Cover check_domain_updated (lines 657-659)
+            self.assertTrue(is_complete(poll_res))
+            return poll_res
+
+        self.mock_client.poll_until_complete.side_effect = fake_poll
+
+        result = cmd_domain_update(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        self.mock_client.poll_until_complete.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_update_async_no_wait(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.owner_c = None
+        args.admin_c = None
+        args.tech_c = None
+        args.nsset = None
+        args.keyset = None
+        args.wait = False
+        args.format = 'table'
+
+        self.mock_client.domain_update.return_value = {
+            'response': {'code': '1001', 'data': {'result': 'async'}}
+        }
+
+        result = cmd_domain_update(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+        mock_format.assert_called_once()
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_create_async_wait_timeout(self, mock_get_logger, mock_validate, mock_format):
+        from wapi.exceptions import WAPITimeoutError
+
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.owner_c = None
+        args.admin_c = None
+        args.nsset = None
+        args.keyset = None
+        args.auth_info = None
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_create.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        # Simulate polling timeout (code 9998)
+        self.mock_client.poll_until_complete.return_value = {
+            'response': {'code': '9998', 'result': 'Timeout'}
+        }
+
+        with self.assertRaises(WAPITimeoutError):
+            cmd_domain_create(args, self.mock_client)
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_create_async_wait_warning_non_timeout(self, mock_get_logger, mock_validate, mock_format):
+        """Non-timeout warning path should return success (line 427)."""
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.owner_c = None
+        args.admin_c = None
+        args.nsset = None
+        args.keyset = None
+        args.auth_info = None
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_create.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        # Poll returns warning but not timeout
+        self.mock_client.poll_until_complete.return_value = {
+            'response': {'code': '1001', 'result': 'Still processing'}
+        }
+
+        result = cmd_domain_create(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_renew_async_wait_intermediate_failure(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.period = 1
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_renew.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        def fake_poll(cmd, params, is_complete, **kwargs):
+            # First check returns False (code not 1000), then return success
+            first = {'response': {'code': '2000', 'data': {}}}
+            self.assertFalse(is_complete(first))  # covers line 519
+            return {'response': {'code': '1000', 'data': {}}}
+
+        self.mock_client.poll_until_complete.side_effect = fake_poll
+
+        result = cmd_domain_renew(args, self.mock_client)
+        self.assertEqual(result, EXIT_SUCCESS)
+
+    @patch('wapi.commands.domain.format_output')
+    @patch('wapi.commands.domain.validate_domain')
+    @patch('wapi.commands.domain.get_logger')
+    def test_domain_update_async_wait_warning_non_timeout(self, mock_get_logger, mock_validate, mock_format):
+        mock_get_logger.return_value = Mock()
+        mock_validate.return_value = (True, None)
+
+        args = Mock()
+        args.domain = 'example.com'
+        args.owner_c = None
+        args.admin_c = None
+        args.tech_c = None
+        args.nsset = None
+        args.keyset = None
+        args.wait = True
+        args.format = 'table'
+        args.quiet = False
+
+        self.mock_client.domain_update.return_value = {
+            'response': {'code': '1001', 'data': {}}
+        }
+
+        # Poll returns warning but not timeout to hit line 685
+        self.mock_client.poll_until_complete.return_value = {
+            'response': {'code': '1001', 'result': 'Still processing'}
+        }
+
+        result = cmd_domain_update(args, self.mock_client)
         self.assertEqual(result, EXIT_SUCCESS)
 
     @patch('wapi.commands.domain.validate_domain')

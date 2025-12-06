@@ -118,6 +118,21 @@ class WedosAPIClient:
             self.session.mount('https://', adapter)
             self.session.mount('http://', adapter)
             self.logger.info("IPv4-only mode enabled - all connections will use IPv4")
+            # Also disable IPv6 at socket level
+            import socket
+            # Save original getaddrinfo
+            if not hasattr(socket, '_original_getaddrinfo'):
+                socket._original_getaddrinfo = socket.getaddrinfo
+            # Override getaddrinfo to prefer IPv4
+            def ipv4_preferred_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+                if family == 0:  # AF_UNSPEC - force IPv4
+                    try:
+                        return socket._original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+                    except (socket.gaierror, OSError):
+                        # If IPv4 fails, try original
+                        return socket._original_getaddrinfo(host, port, family, type, proto, flags)
+                return socket._original_getaddrinfo(host, port, family, type, proto, flags)
+            socket.getaddrinfo = ipv4_preferred_getaddrinfo
         
         self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'}, IPv4-only: {force_ipv4})")
     

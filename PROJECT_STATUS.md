@@ -1,8 +1,8 @@
 # WAPI CLI Project Status
 
 **Last Updated:** 2025-12-06  
-**Version:** 0.9.0  
-**Status:** Core functionality complete, production-ready
+**Version:** 1.1.0  
+**Status:** Production-ready, 100% Coverage
 
 ## ✅ Completed Implementation
 
@@ -51,7 +51,7 @@
 - **Total Modules:** 6 (auth, domain, nsset, contact, config, dns)
 - **Total Commands:** 20+
 - **Python Files:** 15+
-- **Test Coverage:** 100% (789 tests passing)
+- **Test Coverage:** 100% (822 tests passing)
 - **Documentation:** Complete wiki, README, CHANGELOG
 
 ## 🔒 Security
@@ -73,7 +73,7 @@
 ## 🧪 Testing
 
 - ✅ **100% Unit Test Coverage Achieved**
-- ✅ All 789 tests passing
+- ✅ All 822 tests passing
 - ✅ All commands tested with spravuju.cz
 - ✅ COM domain tested with linuxloser.com
 - ✅ All API operations verified working

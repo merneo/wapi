@@ -3,7 +3,7 @@
 **Complete documentation for the WAPI CLI command-line tool**
 
 **Last Updated:** 2025-12-06  
-**Version:** 0.9.0  
+**Version:** 1.1.0  
 **Status:** Production-ready CLI tool  
 **Language:** US English  
 **Standards:** RFC 2606 (example.com), RFC 5737 (192.0.2.0/24), RFC 3849 (2001:db8::/32)  
@@ -1231,7 +1231,7 @@ All CLI commands in this wiki have been verified on a production WAPI system:
 **Last Verified:** 2025-12-06  
 **System:** Production WAPI  
 **Python Version:** 3.13.x  
-**CLI Version:** 0.9.0  
+**CLI Version:** 1.1.0  
 **Status:** All operations functional and production-ready. **100% Test Coverage Achieved.**
 
 ---

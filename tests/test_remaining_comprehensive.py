@@ -64,7 +64,13 @@ def test_auth_status(mock_client, base_args):
     args = base_args
     args.config = "c.env"
     # We need to patch get_config to return username/password so it tries to authenticate
-    with patch('wapi.commands.auth.get_config', side_effect=lambda k, **kw: 'val' if k in ['WAPI_USERNAME', 'WAPI_PASSWORD'] else None):
+    def mock_get_config(key, **kwargs):
+        if key in ['WAPI_USERNAME', 'WAPI_PASSWORD']:
+            return 'val'
+        elif key == 'WAPI_FORCE_IPV4':
+            return None
+        return None
+    with patch('wapi.commands.auth.get_config', side_effect=mock_get_config):
         with patch('wapi.commands.auth.WedosAPIClient', return_value=mock_client):
             ret = cmd_auth_status(args)
             assert ret == 0

@@ -60,6 +60,12 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
     
     username = get_config('WAPI_USERNAME', config_file=config_file)
     password = get_config('WAPI_PASSWORD', config_file=config_file)
+    force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=config_file)
+    
+    # Parse WAPI_FORCE_IPV4 (accepts: true, 1, yes, on)
+    force_ipv4 = False
+    if force_ipv4_str:
+        force_ipv4 = force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
     
     if not username or not password:
         logger.error("Missing WAPI credentials")
@@ -67,7 +73,9 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
         return None
     
     logger.debug("API client credentials loaded successfully")
-    return WedosAPIClient(username, password, use_json=False)
+    if force_ipv4:
+        logger.debug("IPv4-only mode enabled via WAPI_FORCE_IPV4")
+    return WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
 
 
 def cmd_ping(args, client: WedosAPIClient):

@@ -4,7 +4,7 @@ Comprehensive tests for wapi/api/client.py
 import pytest
 import json
 import xml.etree.ElementTree as ET
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, Mock, patch, ANY
 from datetime import datetime
 
 from wapi.api.client import WedosAPIClient
@@ -71,50 +71,49 @@ class TestRequestBuilding:
 
 class TestCallMethod:
     def test_call_json_success(self, client):
-        with patch('requests.post') as mock_post:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"response": {"code": "1000", "result": "OK"}}
-            mock_post.return_value = mock_response
-            
-            result = client.call("ping")
-            
-            assert result['response']['code'] == "1000"
-            mock_post.assert_called_once()
-            args, kwargs = mock_post.call_args
-            assert "request" in kwargs['data']
-            assert "application/x-www-form-urlencoded" in kwargs['headers']['Content-Type']
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": {"code": "1000", "result": "OK"}}
+        client.session.post = Mock(return_value=mock_response)
+        
+        result = client.call("ping")
+        
+        assert result['response']['code'] == "1000"
+        client.session.post.assert_called_once()
+        args, kwargs = client.session.post.call_args
+        assert "request" in kwargs['data']
+        assert "application/x-www-form-urlencoded" in kwargs['headers']['Content-Type']
 
     def test_call_xml_success(self, client_xml):
-        with patch('requests.post') as mock_post:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            xml_resp = """
-            <response>
-                <code>1000</code>
-                <result>OK</result>
-            </response>
-            """
-            mock_response.text = xml_resp
-            mock_post.return_value = mock_response
-            
-            result = client_xml.call("ping")
-            
-            assert result['response']['code'] == 1000 # XML parser converts digits to int
-            assert result['response']['result'] == "OK"
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        xml_resp = """
+        <response>
+            <code>1000</code>
+            <result>OK</result>
+        </response>
+        """
+        mock_response.text = xml_resp
+        mock_response.raise_for_status = Mock()
+        client_xml.session.post = Mock(return_value=mock_response)
+        
+        result = client_xml.call("ping")
+        
+        assert result['response']['code'] == 1000 # XML parser converts digits to int
+        assert result['response']['result'] == "OK"
 
     def test_network_errors(self, client):
-        with patch('requests.post', side_effect=requests.exceptions.ConnectionError("Fail")):
-            with pytest.raises(WAPIConnectionError):
-                client.call("ping")
+        client.session.post = Mock(side_effect=requests.exceptions.ConnectionError("Fail"))
+        with pytest.raises(WAPIConnectionError):
+            client.call("ping")
 
-        with patch('requests.post', side_effect=requests.exceptions.Timeout("Time")):
-            with pytest.raises(WAPITimeoutError):
-                client.call("ping")
+        client.session.post = Mock(side_effect=requests.exceptions.Timeout("Time"))
+        with pytest.raises(WAPITimeoutError):
+            client.call("ping")
 
-        with patch('requests.post', side_effect=requests.exceptions.RequestException("Generic")):
-            with pytest.raises(WAPIRequestError):
-                client.call("ping")
+        client.session.post = Mock(side_effect=requests.exceptions.RequestException("Generic"))
+        with pytest.raises(WAPIRequestError):
+            client.call("ping")
 
 class TestHelperMethods:
     def test_domain_methods(self, client):

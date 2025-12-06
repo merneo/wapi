@@ -47,55 +47,50 @@ class TestAPIClientErrorHandling(unittest.TestCase):
         """Set up test client"""
         self.client = WedosAPIClient("user@example.com", "password")
 
-    @patch('wapi.api.client.requests.post')
-    def test_connection_error_raises_wapi_connection_error(self, mock_post):
+    def test_connection_error_raises_wapi_connection_error(self):
         """Test that connection errors raise WAPIConnectionError"""
-        mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
+        self.client.session.post = Mock(side_effect=requests.exceptions.ConnectionError("Connection failed"))
         
         with self.assertRaises(WAPIConnectionError) as context:
             self.client.call("ping", {})
         
         self.assertIn("Connection error", str(context.exception))
 
-    @patch('wapi.api.client.requests.post')
-    def test_timeout_error_raises_wapi_timeout_error(self, mock_post):
+    def test_timeout_error_raises_wapi_timeout_error(self):
         """Test that timeout errors raise WAPITimeoutError"""
-        mock_post.side_effect = requests.exceptions.Timeout("Request timeout")
+        self.client.session.post = Mock(side_effect=requests.exceptions.Timeout("Request timeout"))
         
         with self.assertRaises(WAPITimeoutError) as context:
             self.client.call("ping", {})
         
         self.assertIn("timeout", str(context.exception).lower())
 
-    @patch('wapi.api.client.requests.post')
-    def test_request_exception_raises_wapi_request_error(self, mock_post):
+    def test_request_exception_raises_wapi_request_error(self):
         """Test that request exceptions raise WAPIRequestError"""
-        mock_post.side_effect = requests.exceptions.RequestException("Request failed")
+        self.client.session.post = Mock(side_effect=requests.exceptions.RequestException("Request failed"))
         
         with self.assertRaises(WAPIRequestError) as context:
             self.client.call("ping", {})
         
         self.assertIn("Request failed", str(context.exception))
 
-    @patch('wapi.api.client.requests.post')
-    def test_http_error_raises_wapi_request_error(self, mock_post):
+    def test_http_error_raises_wapi_request_error(self):
         """Test that HTTP errors raise WAPIRequestError"""
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
-        mock_post.return_value = mock_response
+        self.client.session.post = Mock(return_value=mock_response)
         
         with self.assertRaises(WAPIRequestError):
             self.client.call("ping", {})
 
-    @patch('wapi.api.client.requests.post')
     @patch('wapi.api.client.ET.fromstring')
-    def test_xml_parse_error_raises_wapi_request_error(self, mock_fromstring, mock_post):
+    def test_xml_parse_error_raises_wapi_request_error(self, mock_fromstring):
         """Test that XML parse errors raise WAPIRequestError"""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "<invalid>xml</invalid>"
         mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        self.client.session.post = Mock(return_value=mock_response)
         
         # Mock ET.fromstring to raise ParseError
         import xml.etree.ElementTree as ET

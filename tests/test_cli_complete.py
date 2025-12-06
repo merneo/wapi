@@ -234,10 +234,18 @@ class TestCLIComplete(unittest.TestCase):
         """Test get_client with missing credentials (lines 60-62)"""                                                           
         from wapi.cli import get_client                                                                                        
                                                                                                                                
-        mock_validate_config.return_value = (True, None)                                                                       
-        mock_get_config.side_effect = ['', '']  # Empty username and password                                                  
-                                                                                                                               
-        result = get_client('config.env')                                                                                      
+        mock_validate_config.return_value = (True, None)
+        def mock_get_config_func(key, **kwargs):
+            if key == 'WAPI_USERNAME':
+                return ''
+            elif key == 'WAPI_PASSWORD':
+                return ''
+            elif key == 'WAPI_FORCE_IPV4':
+                return None
+            return None
+        mock_get_config.side_effect = mock_get_config_func
+        
+        result = get_client('config.env')
                                                                                                                                
         self.assertIsNone(result)                                                                                              
                                                                                                                                

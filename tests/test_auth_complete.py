@@ -356,11 +356,21 @@ class TestAuthComplete(unittest.TestCase):
                 # Allow writes to succeed
                 return mock_open(read_data='')()
             
-            with patch('builtins.open', side_effect=side_effect_open):
-                # Should continue despite read error (lines 110-111 catch the exception)
-                result = cmd_auth_login(self.mock_args, None)
-                
-                self.assertEqual(result, EXIT_SUCCESS)
+            # Mock get_config to avoid calling load_config which would fail
+            def mock_get_config(key, **kwargs):
+                if key == 'WAPI_FORCE_IPV4':
+                    return None
+                return None
+            
+            with patch('wapi.commands.auth.get_config', side_effect=mock_get_config):
+                with patch('builtins.open', side_effect=side_effect_open):
+                    # Should continue despite read error (lines 110-111 catch the exception)
+                    # But get_config will be called for WAPI_FORCE_IPV4, which will call load_config
+                    # So we need to also mock load_config to not fail
+                    with patch('wapi.config.load_config', return_value={}):
+                        result = cmd_auth_login(self.mock_args, None)
+                        
+                        self.assertEqual(result, EXIT_SUCCESS)
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)

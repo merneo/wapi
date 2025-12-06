@@ -13,7 +13,15 @@ from wapi.exceptions import WAPIConfigurationError, WAPIAuthenticationError
 
 def test_get_client_success():
     with patch('wapi.cli.validate_config', return_value=(True, None)):
-        with patch('wapi.cli.get_config', side_effect=['user', 'pass']):
+        def mock_get_config(key, **kwargs):
+            if key == 'WAPI_USERNAME':
+                return 'user'
+            elif key == 'WAPI_PASSWORD':
+                return 'pass'
+            elif key == 'WAPI_FORCE_IPV4':
+                return None
+            return None
+        with patch('wapi.cli.get_config', side_effect=mock_get_config):
             client = get_client('config.env')
             assert client is not None
             assert client.username == 'user'
@@ -25,7 +33,15 @@ def test_get_client_invalid_config():
 
 def test_get_client_missing_creds():
     with patch('wapi.cli.validate_config', return_value=(True, None)):
-        with patch('wapi.cli.get_config', side_effect=[None, None]):
+        def mock_get_config(key, **kwargs):
+            if key == 'WAPI_USERNAME':
+                return None
+            elif key == 'WAPI_PASSWORD':
+                return None
+            elif key == 'WAPI_FORCE_IPV4':
+                return None
+            return None
+        with patch('wapi.cli.get_config', side_effect=mock_get_config):
             client = get_client('config.env')
             assert client is None
 

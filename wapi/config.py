@@ -58,7 +58,7 @@ def load_config(config_file: str = "config.env") -> Dict[str, str]:
             raise WAPIConfigurationError(f"Error reading config file {config_file}: {e}") from e
     
     # Override with environment variables
-    env_vars = ['WAPI_USERNAME', 'WAPI_PASSWORD', 'WAPI_BASE_URL']
+    env_vars = ['WAPI_USERNAME', 'WAPI_PASSWORD', 'WAPI_BASE_URL', 'WAPI_FORCE_IPV4']
     for var in env_vars:
         env_value = os.getenv(var)
         if env_value:

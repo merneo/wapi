@@ -213,14 +213,13 @@ class TestAPIClientCallMethod(unittest.TestCase):
         """Set up test client"""
         self.client = WedosAPIClient("user@example.com", "password", use_json=False)
 
-    @patch('wapi.api.client.requests.post')
-    def test_call_xml_format_success(self, mock_post):
+    def test_call_xml_format_success(self):
         """Test call() with XML format successful response (lines 194-222)"""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = '<response><code>1000</code><result>OK</result></response>'
         mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        self.client.session.post = Mock(return_value=mock_response)
         
         result = self.client.call("ping", {})
         
@@ -241,7 +240,7 @@ class TestAPIClientCallMethod(unittest.TestCase):
             }
         }
         mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        client.session.post = Mock(return_value=mock_response)
         
         result = client.call("ping", {})
         
@@ -254,29 +253,27 @@ class TestAPIClientCallMethod(unittest.TestCase):
         client = WedosAPIClient("user@example.com", "password", use_json=True)
         
         from wapi.exceptions import WAPITimeoutError
-        mock_post.side_effect = requests.exceptions.Timeout("Timeout")
+        client.session.post = Mock(side_effect=requests.exceptions.Timeout("Timeout"))
         
         with self.assertRaises(WAPITimeoutError):
             client.call("ping", {})
 
-    @patch('wapi.api.client.requests.post')
-    def test_call_json_format_connection_error(self, mock_post):
+    def test_call_json_format_connection_error(self):
         """Test call() with JSON format connection error (lines 181-183)"""
         client = WedosAPIClient("user@example.com", "password", use_json=True)
         
         from wapi.exceptions import WAPIConnectionError
-        mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
+        client.session.post = Mock(side_effect=requests.exceptions.ConnectionError("Connection failed"))
         
         with self.assertRaises(WAPIConnectionError):
             client.call("ping", {})
 
-    @patch('wapi.api.client.requests.post')
-    def test_call_json_format_request_exception(self, mock_post):
+    def test_call_json_format_request_exception(self):
         """Test call() with JSON format request exception (lines 184-186)"""
         client = WedosAPIClient("user@example.com", "password", use_json=True)
         
         from wapi.exceptions import WAPIRequestError
-        mock_post.side_effect = requests.exceptions.RequestException("Request failed")
+        client.session.post = Mock(side_effect=requests.exceptions.RequestException("Request failed"))
         
         with self.assertRaises(WAPIRequestError):
             client.call("ping", {})

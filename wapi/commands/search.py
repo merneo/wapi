@@ -156,8 +156,11 @@ def get_client(config_file: Optional[str] = None) -> Optional[WedosAPIClient]:
     password = get_config('WAPI_PASSWORD', config_file=config_file)
     if not (username and password):
         return None
+    # Check if IPv4-only mode is requested
+    force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=config_file)
+    force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
     try:
-        return WedosAPIClient(username, password, use_json=False)
+        return WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
     except Exception:
         return None
 

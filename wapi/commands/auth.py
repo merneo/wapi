@@ -72,8 +72,13 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
     connection_test_passed = False
     ip_whitelist_issue = False
     
+    # Check if IPv4-only mode is requested
+    from ..config import get_config
+    force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=str(config_file))
+    force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
+    
     try:
-        test_client = WedosAPIClient(username, password, use_json=False)
+        test_client = WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
         result = test_client.ping()
         response = result.get('response', {})
         code = response.get('code')
@@ -242,7 +247,10 @@ def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
     # Test connection
     logger.debug("Testing connection with configured credentials")
     try:
-        test_client = client or WedosAPIClient(username, password, use_json=False)
+        # Check if IPv4-only mode is requested
+        force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=args.config)
+        force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
+        test_client = client or WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
         result = test_client.ping()
         response = result.get('response', {})
         code = response.get('code')
@@ -280,6 +288,9 @@ def get_client(config_file: Optional[str] = None) -> Optional[WedosAPIClient]:
     if not (username and password):
         return None
     try:
-        return WedosAPIClient(username, password, use_json=False)
+        # Check if IPv4-only mode is requested
+        force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=str(config_file))
+        force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
+        return WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
     except Exception:
         return None

@@ -50,17 +50,33 @@ class TestSearchCoverageFinal(unittest.TestCase):
         """
         Test get_client when get_config returns no credentials (lines 157-158).
         """
-        mock_get_config.side_effect = [None, None] # username, then password
+        def mock_get_config_func(key, **kwargs):
+            if key == 'WAPI_USERNAME':
+                return None
+            elif key == 'WAPI_PASSWORD':
+                return None
+            elif key == 'WAPI_FORCE_IPV4':
+                return None
+            return None
+        mock_get_config.side_effect = mock_get_config_func
         result = get_client()
         self.assertIsNone(result)
 
-    @patch('wapi.commands.search.get_config', return_value="test@example.com") # username
     @patch('wapi.commands.search.WedosAPIClient')
-    def test_get_client_init_exception(self, mock_api_client, mock_get_config):
+    @patch('wapi.commands.search.get_config')
+    def test_get_client_init_exception(self, mock_get_config, mock_api_client):
         """
         Test get_client when WedosAPIClient init raises an exception (lines 161-162).
         """
-        mock_get_config.side_effect = ["test@example.com", "testpass"] # username, password
+        def mock_get_config_func(key, **kwargs):
+            if key == 'WAPI_USERNAME':
+                return "test@example.com"
+            elif key == 'WAPI_PASSWORD':
+                return "testpass"
+            elif key == 'WAPI_FORCE_IPV4':
+                return None
+            return None
+        mock_get_config.side_effect = mock_get_config_func
         mock_api_client.side_effect = Exception("Client init failed")
         result = get_client()
         self.assertIsNone(result)

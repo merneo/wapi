@@ -7,12 +7,15 @@ Supports both XML and JSON formats.
 
 import hashlib
 import json
+import socket
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.connection import create_connection
 
 from .auth import calculate_auth
 from ..constants import DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
@@ -24,10 +27,38 @@ from ..exceptions import (
 from ..utils.logger import get_logger
 
 
+class IPv4HTTPAdapter(HTTPAdapter):
+    """HTTP adapter that forces IPv4 connections"""
+    def init_poolmanager(self, *args, **kwargs):
+        # Force IPv4 by monkey-patching urllib3's create_connection
+        import urllib3.util.connection as urllib3_connection
+        
+        # Save original function
+        if not hasattr(urllib3_connection, '_original_create_connection'):
+            urllib3_connection._original_create_connection = urllib3_connection.create_connection
+        
+        def patched_create_connection(address, *args, **kwargs):
+            """Force IPv4 by resolving to IPv4 address first"""
+            host, port = address
+            # Resolve hostname to IPv4 only
+            try:
+                addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+                if addrinfo:
+                    # Use first IPv4 address
+                    ipv4_address = addrinfo[0][4][0]
+                    address = (ipv4_address, port)
+            except (socket.gaierror, OSError, TypeError):
+                pass  # Fall back to original behavior
+            return urllib3_connection._original_create_connection(address, *args, **kwargs)
+        
+        urllib3_connection.create_connection = patched_create_connection
+        return super().init_poolmanager(*args, **kwargs)
+
+
 class WedosAPIClient:
     """WEDOS WAPI client supporting XML and JSON formats"""
     
-    def __init__(self, username: str, password: str, base_url: str = "https://api.wedos.com/wapi", use_json: bool = False):
+    def __init__(self, username: str, password: str, base_url: str = "https://api.wedos.com/wapi", use_json: bool = False, force_ipv4: bool = False):
         """
         Initialize WEDOS API client
         
@@ -36,14 +67,23 @@ class WedosAPIClient:
             password: WAPI password
             base_url: Base URL for API (default: https://api.wedos.com/wapi)
             use_json: Use JSON format instead of XML (default: False)
+            force_ipv4: Force IPv4 connections (useful when IPv6 is not whitelisted) (default: False)
         """
         self.username = username
         self.password = password
         self.use_json = use_json
+        self.force_ipv4 = force_ipv4
         self.base_url = f"{base_url}/json" if use_json else f"{base_url}/xml"
         self.logger = get_logger('api.client')
         
-        self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'})")
+        # Create session with IPv4 adapter if needed
+        self.session = requests.Session()
+        if force_ipv4:
+            self.session.mount('https://', IPv4HTTPAdapter())
+            self.session.mount('http://', IPv4HTTPAdapter())
+            self.logger.debug("IPv4-only mode enabled")
+        
+        self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'}, IPv4-only: {force_ipv4})")
     
     def _calculate_auth(self) -> str:
         """Calculate authentication hash based on current hour in Europe/Prague timezone"""
@@ -167,7 +207,7 @@ class WedosAPIClient:
             request_body = self._build_json_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             try:
-                response = requests.post(
+                response = self.session.post(
                     self.base_url,
                     data={"request": request_body},
                     headers=headers,
@@ -196,7 +236,7 @@ class WedosAPIClient:
             request_body = self._build_xml_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             try:
-                response = requests.post(
+                response = self.session.post(
                     self.base_url,
                     data={"request": request_body},
                     headers=headers,

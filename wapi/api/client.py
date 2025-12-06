@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 
 from .auth import calculate_auth
+from ..constants import DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
 from ..exceptions import (
     WAPIConnectionError,
     WAPIRequestError,
@@ -232,6 +233,18 @@ class WedosAPIClient:
             Dictionary with domain information
         """
         return self.call("domain-info", {"name": domain_name})
+
+    def domain_availability(self, domain_name: str) -> Dict[str, Any]:
+        """
+        Check domain availability via WAPI.
+        
+        Args:
+            domain_name: Domain name to check
+        
+        Returns:
+            Dictionary with availability information
+        """
+        return self.call("domains-availability", {"name": domain_name})
     
     def domain_update_ns(self, domain_name: str, nsset_name: Optional[str] = None, 
                         nameservers: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
@@ -298,6 +311,139 @@ class WedosAPIClient:
                 }
             }
     
+    def domain_create(self, domain_name: str, period: int = 1, 
+                     owner_c: Optional[str] = None, admin_c: Optional[str] = None,
+                     nsset: Optional[str] = None, keyset: Optional[str] = None,
+                     auth_info: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create/register a new domain
+        
+        Args:
+            domain_name: Domain name to register
+            period: Registration period in years (default: 1)
+            owner_c: Owner contact handle
+            admin_c: Admin contact handle
+            nsset: NSSET name to assign
+            keyset: KEYSET name to assign (for DNSSEC)
+            auth_info: Authorization code (for some TLDs)
+            
+        Returns:
+            Dictionary with API response
+        """
+        data = {
+            "name": domain_name,
+            "period": period
+        }
+        if owner_c:
+            data["owner_c"] = owner_c
+        if admin_c:
+            data["admin_c"] = admin_c
+        if nsset:
+            data["nsset"] = nsset
+        if keyset:
+            data["keyset"] = keyset
+        if auth_info:
+            data["auth_info"] = auth_info
+        
+        return self.call("domain-create", data)
+    
+    def domain_transfer(self, domain_name: str, auth_info: str,
+                       period: int = 1) -> Dict[str, Any]:
+        """
+        Transfer domain from another registrar
+        
+        Args:
+            domain_name: Domain name to transfer
+            auth_info: Authorization code (EPP code)
+            period: Registration period in years (default: 1)
+            
+        Returns:
+            Dictionary with API response
+        """
+        data = {
+            "name": domain_name,
+            "auth_info": auth_info,
+            "period": period
+        }
+        return self.call("domain-transfer", data)
+    
+    def domain_renew(self, domain_name: str, period: int = 1) -> Dict[str, Any]:
+        """
+        Renew domain registration
+        
+        Args:
+            domain_name: Domain name to renew
+            period: Renewal period in years (default: 1)
+            
+        Returns:
+            Dictionary with API response
+        """
+        data = {
+            "name": domain_name,
+            "period": period
+        }
+        return self.call("domain-renew", data)
+    
+    def domain_delete(self, domain_name: str, 
+                     delete_after: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Delete domain registration
+        
+        Args:
+            domain_name: Domain name to delete
+            delete_after: Optional date to delete after (YYYY-MM-DD format)
+            
+        Returns:
+            Dictionary with API response
+        """
+        data = {
+            "name": domain_name
+        }
+        if delete_after:
+            data["delete_after"] = delete_after
+        
+        return self.call("domain-delete", data)
+    
+    def domain_update(self, domain_name: str, 
+                    owner_c: Optional[str] = None,
+                    admin_c: Optional[str] = None,
+                    tech_c: Optional[str] = None,
+                    nsset: Optional[str] = None,
+                    keyset: Optional[str] = None,
+                    auth_info: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Update domain information
+        
+        Args:
+            domain_name: Domain name
+            owner_c: Owner contact handle
+            admin_c: Admin contact handle
+            tech_c: Technical contact handle
+            nsset: NSSET name to assign
+            keyset: KEYSET name to assign (for DNSSEC)
+            auth_info: Authorization code
+            
+        Returns:
+            Dictionary with API response
+        """
+        data = {
+            "name": domain_name
+        }
+        if owner_c:
+            data["owner_c"] = owner_c
+        if admin_c:
+            data["admin_c"] = admin_c
+        if tech_c:
+            data["tech_c"] = tech_c
+        if nsset:
+            data["nsset"] = nsset
+        if keyset:
+            data["keyset"] = keyset
+        if auth_info:
+            data["auth_info"] = auth_info
+        
+        return self.call("domain-update", data)
+    
     def ping(self) -> Dict[str, Any]:
         """
         Test API connection
@@ -312,8 +458,8 @@ class WedosAPIClient:
         check_command: str,
         check_data: Dict[str, Any],
         is_complete: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        max_attempts: int = 60,
-        interval: int = 10,
+        max_attempts: int = DEFAULT_MAX_POLL_ATTEMPTS,
+        interval: int = DEFAULT_POLL_INTERVAL,
         verbose: bool = False
     ) -> Dict[str, Any]:
         """

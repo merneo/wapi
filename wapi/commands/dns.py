@@ -8,7 +8,10 @@ import sys
 from typing import Any, Dict, List
 
 from ..api.client import WedosAPIClient
-from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR
+from ..constants import (
+    EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR,
+    DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
+)
 from ..exceptions import (
     WAPIValidationError,
     WAPIRequestError,
@@ -178,8 +181,8 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
                 "dns-rows-list",
                 {"domain": args.domain},
                 is_complete=check_record_added,
-                max_attempts=60,
-                interval=10,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
                 verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
@@ -300,8 +303,8 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
                 "dns-rows-list",
                 {"domain": args.domain},
                 is_complete=check_record_updated,
-                max_attempts=60,
-                interval=10,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
                 verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
@@ -395,8 +398,8 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
                 "dns-rows-list",
                 {"domain": args.domain},
                 is_complete=check_record_deleted,
-                max_attempts=60,
-                interval=10,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
                 verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             

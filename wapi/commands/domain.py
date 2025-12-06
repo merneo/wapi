@@ -8,7 +8,10 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from ..api.client import WedosAPIClient
-from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR
+from ..constants import (
+    EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR,
+    DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
+)
 from ..exceptions import (
     WAPIValidationError,
     WAPIRequestError,
@@ -314,8 +317,8 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 "domain-info",
                 {"name": args.domain},
                 is_complete=check_domain_updated,
-                max_attempts=60,
-                interval=10,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
                 verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             
@@ -344,3 +347,346 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
         logger.error(f"Failed to update nameservers: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
         raise WAPIRequestError(f"Failed to update nameservers: {error_msg} (code: {code})")
+
+
+def cmd_domain_create(args, client: WedosAPIClient) -> int:
+    """Handle domain create command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Creating domain: {args.domain}")
+    
+    # Validate domain name
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        raise WAPIValidationError(f"Invalid domain name: {error}")
+    
+    # Get parameters
+    period = getattr(args, 'period', 1)
+    owner_c = getattr(args, 'owner_c', None)
+    admin_c = getattr(args, 'admin_c', None)
+    nsset = getattr(args, 'nsset', None)
+    keyset = getattr(args, 'keyset', None)
+    auth_info = getattr(args, 'auth_info', None)
+    
+    # Create domain
+    result = client.domain_create(
+        args.domain,
+        period=period,
+        owner_c=owner_c,
+        admin_c=admin_c,
+        nsset=nsset,
+        keyset=keyset,
+        auth_info=auth_info
+    )
+    
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        logger.info(f"Domain created successfully: {args.domain}")
+        print("✅ Domain created successfully")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    elif code == '1001' or code == 1001:
+        logger.info("Domain creation started (asynchronous)")
+        print("⚠️  Domain creation started (asynchronous)")
+        if getattr(args, 'wait', False):
+            print("Waiting for completion...")
+            # Poll domain-info until domain exists
+            def check_domain_exists(poll_result: Dict[str, Any]) -> bool:
+                """Check if domain has been created"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                return poll_code in ['1000', 1000]
+            
+            final_result = client.poll_until_complete(
+                "domain-info",
+                {"name": args.domain},
+                is_complete=check_domain_exists,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                logger.info("Domain created successfully (after polling)")
+                print("✅ Domain created successfully")
+                print(format_output(final_response, args.format))
+                return EXIT_SUCCESS
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"Polling completed with warning: {error_msg}")
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
+        else:
+            print(format_output(response, args.format))
+            return EXIT_SUCCESS
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to create domain: {error_msg} (code: {code})")
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        raise WAPIRequestError(f"Failed to create domain: {error_msg} (code: {code})")
+
+
+def cmd_domain_transfer(args, client: WedosAPIClient) -> int:
+    """Handle domain transfer command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Transferring domain: {args.domain}")
+    
+    # Validate domain name
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        raise WAPIValidationError(f"Invalid domain name: {error}")
+    
+    # Validate auth_info (required for transfer)
+    auth_info = getattr(args, 'auth_info', None)
+    if not auth_info:
+        logger.error("Authorization code (auth_info) is required for domain transfer")
+        print("Error: Authorization code (--auth-info) is required for domain transfer", file=sys.stderr)
+        raise WAPIValidationError("Authorization code is required for domain transfer")
+    
+    period = getattr(args, 'period', 1)
+    
+    # Transfer domain
+    result = client.domain_transfer(args.domain, auth_info, period=period)
+    
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        logger.info(f"Domain transfer initiated successfully: {args.domain}")
+        print("✅ Domain transfer initiated successfully")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    elif code == '1001' or code == 1001:
+        logger.info("Domain transfer started (asynchronous)")
+        print("⚠️  Domain transfer started (asynchronous)")
+        print("Note: Domain transfers can take several days to complete")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to transfer domain: {error_msg} (code: {code})")
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        raise WAPIRequestError(f"Failed to transfer domain: {error_msg} (code: {code})")
+
+
+def cmd_domain_renew(args, client: WedosAPIClient) -> int:
+    """Handle domain renew command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Renewing domain: {args.domain}")
+    
+    # Validate domain name
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        raise WAPIValidationError(f"Invalid domain name: {error}")
+    
+    period = getattr(args, 'period', 1)
+    
+    # Renew domain
+    result = client.domain_renew(args.domain, period=period)
+    
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        logger.info(f"Domain renewed successfully: {args.domain}")
+        print("✅ Domain renewed successfully")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    elif code == '1001' or code == 1001:
+        logger.info("Domain renewal started (asynchronous)")
+        print("⚠️  Domain renewal started (asynchronous)")
+        if getattr(args, 'wait', False):
+            print("Waiting for completion...")
+            # Poll domain-info to check expiration date
+            def check_domain_renewed(poll_result: Dict[str, Any]) -> bool:
+                """Check if domain has been renewed"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                if poll_code not in ['1000', 1000]:
+                    return False
+                
+                # Domain info retrieved successfully - renewal likely complete
+                # (exact expiration date check would require storing original expiration)
+                return True
+            
+            final_result = client.poll_until_complete(
+                "domain-info",
+                {"name": args.domain},
+                is_complete=check_domain_renewed,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                logger.info("Domain renewed successfully (after polling)")
+                print("✅ Domain renewed successfully")
+                print(format_output(final_response, args.format))
+                return EXIT_SUCCESS
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"Polling completed with warning: {error_msg}")
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
+        else:
+            print(format_output(response, args.format))
+            return EXIT_SUCCESS
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to renew domain: {error_msg} (code: {code})")
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        raise WAPIRequestError(f"Failed to renew domain: {error_msg} (code: {code})")
+
+
+def cmd_domain_delete(args, client: WedosAPIClient) -> int:
+    """Handle domain delete command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Deleting domain: {args.domain}")
+    
+    # Validate domain name
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        raise WAPIValidationError(f"Invalid domain name: {error}")
+    
+    # Confirm deletion unless --force is specified
+    if not getattr(args, 'force', False):
+        print(f"⚠️  WARNING: This will delete domain {args.domain}", file=sys.stderr)
+        print("This action may be irreversible. Use --force to skip confirmation.", file=sys.stderr)
+        raise WAPIValidationError("Domain deletion requires --force flag for confirmation")
+    
+    delete_after = getattr(args, 'delete_after', None)
+    
+    # Delete domain
+    result = client.domain_delete(args.domain, delete_after=delete_after)
+    
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        logger.info(f"Domain deleted successfully: {args.domain}")
+        print("✅ Domain deleted successfully")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    elif code == '1001' or code == 1001:
+        logger.info("Domain deletion started (asynchronous)")
+        print("⚠️  Domain deletion started (asynchronous)")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to delete domain: {error_msg} (code: {code})")
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        raise WAPIRequestError(f"Failed to delete domain: {error_msg} (code: {code})")
+
+
+def cmd_domain_update(args, client: WedosAPIClient) -> int:
+    """Handle domain update command"""
+    logger = get_logger('commands.domain')
+    logger.info(f"Updating domain: {args.domain}")
+    
+    # Validate domain name
+    is_valid, error = validate_domain(args.domain)
+    if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
+        print(f"Error: Invalid domain name - {error}", file=sys.stderr)
+        raise WAPIValidationError(f"Invalid domain name: {error}")
+    
+    # Get parameters
+    owner_c = getattr(args, 'owner_c', None)
+    admin_c = getattr(args, 'admin_c', None)
+    tech_c = getattr(args, 'tech_c', None)
+    nsset = getattr(args, 'nsset', None)
+    keyset = getattr(args, 'keyset', None)
+    auth_info = getattr(args, 'auth_info', None)
+    
+    # Check if at least one parameter is provided
+    if not any([owner_c, admin_c, tech_c, nsset, keyset, auth_info]):
+        logger.error("At least one update parameter must be provided")
+        print("Error: At least one of --owner-c, --admin-c, --tech-c, --nsset, --keyset, or --auth-info must be provided", file=sys.stderr)
+        raise WAPIValidationError("At least one update parameter must be provided")
+    
+    # Update domain
+    result = client.domain_update(
+        args.domain,
+        owner_c=owner_c,
+        admin_c=admin_c,
+        tech_c=tech_c,
+        nsset=nsset,
+        keyset=keyset,
+        auth_info=auth_info
+    )
+    
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code == '1000' or code == 1000:
+        logger.info(f"Domain updated successfully: {args.domain}")
+        print("✅ Domain updated successfully")
+        print(format_output(response, args.format))
+        return EXIT_SUCCESS
+    elif code == '1001' or code == 1001:
+        logger.info("Domain update started (asynchronous)")
+        print("⚠️  Domain update started (asynchronous)")
+        if getattr(args, 'wait', False):
+            print("Waiting for completion...")
+            # Poll domain-info to verify update
+            def check_domain_updated(poll_result: Dict[str, Any]) -> bool:
+                """Check if domain has been updated"""
+                poll_response = poll_result.get('response', {})
+                poll_code = poll_response.get('code')
+                return poll_code in ['1000', 1000]
+            
+            final_result = client.poll_until_complete(
+                "domain-info",
+                {"name": args.domain},
+                is_complete=check_domain_updated,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
+                verbose=not (hasattr(args, 'quiet') and args.quiet)
+            )
+            
+            final_response = final_result.get('response', {})
+            final_code = final_response.get('code')
+            
+            if final_code in ['1000', 1000]:
+                logger.info("Domain updated successfully (after polling)")
+                print("✅ Domain updated successfully")
+                print(format_output(final_response, args.format))
+                return EXIT_SUCCESS
+            else:
+                error_msg = final_response.get('result', 'Timeout or error')
+                logger.warning(f"Polling completed with warning: {error_msg}")
+                print(f"⚠️  {error_msg}", file=sys.stderr)
+                print(format_output(response, args.format))
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
+        else:
+            print(format_output(response, args.format))
+            return EXIT_SUCCESS
+    else:
+        error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to update domain: {error_msg} (code: {code})")
+        print(f"Error ({code}): {error_msg}", file=sys.stderr)
+        raise WAPIRequestError(f"Failed to update domain: {error_msg} (code: {code})")

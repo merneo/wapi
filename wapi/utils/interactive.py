@@ -5,9 +5,11 @@ Provides an interactive shell for running WAPI commands.
 """
 
 import sys
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from ..api.client import WedosAPIClient
+if TYPE_CHECKING:
+    from ..api.client import WedosAPIClient
+
 from ..utils.logger import get_logger
 
 
@@ -19,7 +21,7 @@ class WAPIInteractiveShell:
     WAPI commands interactively.
     """
     
-    def __init__(self, client: WedosAPIClient):
+    def __init__(self, client: 'WedosAPIClient'):
         """
         Initialize interactive shell.
         
@@ -217,7 +219,7 @@ Use '--help' after any command for detailed help.
         print("Use 'wapi config {subcommand}' from command line for full functionality")
 
 
-def start_interactive_mode(client: WedosAPIClient) -> int:
+def start_interactive_mode(client: 'WedosAPIClient') -> int:
     """
     Start interactive mode (REPL).
     

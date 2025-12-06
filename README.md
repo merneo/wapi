@@ -16,6 +16,7 @@ WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS set
 **Key Features:**
 - ✅ Complete CLI tool with 20+ commands
 - ✅ Domain management (list, info, update nameservers)
+- ✅ Domain availability search with automatic WHOIS fallback
 - ✅ NSSET operations (create, info)
 - ✅ DNS record management (list, add, delete)
 - ✅ Contact information retrieval
@@ -94,6 +95,10 @@ wapi domain list
 
 # Get domain information
 wapi domain info example.com
+
+# Check availability with WHOIS fallback
+wapi search example.com
+wapi -s example.com  # short alias
 
 # List DNS records
 wapi dns records example.com

@@ -8,7 +8,10 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from ..api.client import WedosAPIClient
-from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR
+from ..constants import (
+    EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR,
+    DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
+)
 from ..exceptions import (
     WAPIValidationError,
     WAPIRequestError,
@@ -108,8 +111,8 @@ def cmd_nsset_create(args, client: WedosAPIClient) -> int:
                 "nsset-info",
                 {"name": args.name, "tld": tld},
                 is_complete=check_nsset_created,
-                max_attempts=60,
-                interval=10,
+                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
+                interval=DEFAULT_POLL_INTERVAL,
                 verbose=not (hasattr(args, 'quiet') and args.quiet)
             )
             

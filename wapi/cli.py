@@ -31,6 +31,7 @@ from .utils.logger import get_logger, setup_logging
 from .utils.aliases import expand_alias, list_aliases
 from .utils.interactive import start_interactive_mode
 from .utils.config_wizard import run_config_wizard
+from .commands.search import cmd_search
 
 
 def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
@@ -98,9 +99,12 @@ from .commands.auth import cmd_auth_login, cmd_auth_logout, cmd_auth_status
 
 
 # Import command handlers
-from .commands.domain import cmd_domain_info, cmd_domain_list, cmd_domain_update_ns
+from .commands.domain import (
+    cmd_domain_info, cmd_domain_list, cmd_domain_update_ns,
+    cmd_domain_create, cmd_domain_transfer, cmd_domain_renew,
+    cmd_domain_delete, cmd_domain_update
+)
 from .commands.config import cmd_config_show, cmd_config_validate, cmd_config_set
-from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
 from .commands.dns import cmd_dns_list, cmd_dns_record_list, cmd_dns_record_add, cmd_dns_record_update, cmd_dns_record_delete
 
 
@@ -127,6 +131,11 @@ def main():
                        help='Show available command aliases')
     parser.add_argument('--wizard', action='store_true',
                        help='Run configuration wizard for first-time setup')
+    parser.add_argument('-s', '--search', dest='search_domain',
+                       help='Check domain availability (alias for search command)')
+    parser.add_argument('--search-whois-server', help='Override WHOIS server for --search alias')
+    parser.add_argument('--search-whois-timeout', type=int, default=10,
+                       help='WHOIS timeout (seconds) for --search alias')
     
     # Subcommands
     subparsers = parser.add_subparsers(dest='module', help='Module')
@@ -171,6 +180,56 @@ def main():
     update_ns_parser.add_argument('--no-ipv6-discovery', action='store_true', 
                                  help='Disable automatic IPv6 address discovery for nameservers')
     update_ns_parser.set_defaults(func=cmd_domain_update_ns)
+    
+    create_parser = domain_subparsers.add_parser('create', help='Register new domain')
+    create_parser.add_argument('domain', help='Domain name to register')
+    create_parser.add_argument('--period', type=int, default=1, help='Registration period in years (default: 1)')
+    create_parser.add_argument('--owner-c', dest='owner_c', help='Owner contact handle')
+    create_parser.add_argument('--admin-c', dest='admin_c', help='Admin contact handle')
+    create_parser.add_argument('--nsset', help='NSSET name to assign')
+    create_parser.add_argument('--keyset', help='KEYSET name to assign (for DNSSEC)')
+    create_parser.add_argument('--auth-info', dest='auth_info', help='Authorization code (for some TLDs)')
+    create_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    create_parser.set_defaults(func=cmd_domain_create)
+    
+    transfer_parser = domain_subparsers.add_parser('transfer', help='Transfer domain from another registrar')
+    transfer_parser.add_argument('domain', help='Domain name to transfer')
+    transfer_parser.add_argument('--auth-info', dest='auth_info', required=True, 
+                                help='Authorization code (EPP code) - required')
+    transfer_parser.add_argument('--period', type=int, default=1, help='Registration period in years (default: 1)')
+    transfer_parser.set_defaults(func=cmd_domain_transfer)
+    
+    renew_parser = domain_subparsers.add_parser('renew', help='Renew domain registration')
+    renew_parser.add_argument('domain', help='Domain name to renew')
+    renew_parser.add_argument('--period', type=int, default=1, help='Renewal period in years (default: 1)')
+    renew_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    renew_parser.set_defaults(func=cmd_domain_renew)
+    
+    delete_parser = domain_subparsers.add_parser('delete', help='Delete domain registration')
+    delete_parser.add_argument('domain', help='Domain name to delete')
+    delete_parser.add_argument('--force', action='store_true', 
+                              help='Force deletion without confirmation (required)')
+    delete_parser.add_argument('--delete-after', dest='delete_after', 
+                              help='Delete after date (YYYY-MM-DD format)')
+    delete_parser.set_defaults(func=cmd_domain_delete)
+    
+    update_parser = domain_subparsers.add_parser('update', help='Update domain information')
+    update_parser.add_argument('domain', help='Domain name')
+    update_parser.add_argument('--owner-c', dest='owner_c', help='Owner contact handle')
+    update_parser.add_argument('--admin-c', dest='admin_c', help='Admin contact handle')
+    update_parser.add_argument('--tech-c', dest='tech_c', help='Technical contact handle')
+    update_parser.add_argument('--nsset', help='NSSET name to assign')
+    update_parser.add_argument('--keyset', help='KEYSET name to assign (for DNSSEC)')
+    update_parser.add_argument('--auth-info', dest='auth_info', help='Authorization code')
+    update_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    update_parser.set_defaults(func=cmd_domain_update)
+
+    # Search module (single command)
+    search_parser = subparsers.add_parser('search', help='Search domain availability and WHOIS')
+    search_parser.add_argument('domain', help='Domain name to search')
+    search_parser.add_argument('--whois-server', help='Override WHOIS server (optional)')
+    search_parser.add_argument('--whois-timeout', type=int, default=10, help='WHOIS socket timeout in seconds')
+    search_parser.set_defaults(func=cmd_search)
     
     # NSSET module
     from .commands.nsset import cmd_nsset_create, cmd_nsset_info, cmd_nsset_list
@@ -290,6 +349,17 @@ def main():
     if args.wizard:
         success = run_config_wizard(args.config)
         return EXIT_SUCCESS if success else EXIT_CONFIG_ERROR
+    
+    # Handle top-level search alias (-s/--search)
+    if getattr(args, 'search_domain', None):
+        if not hasattr(args, 'format'):
+            args.format = 'table'
+        args.domain = args.search_domain
+        args.whois_server = getattr(args, 'search_whois_server', None)
+        args.whois_timeout = getattr(args, 'search_whois_timeout', 10)
+        args.module = 'search'
+        args.command = 'search'
+        args.func = cmd_search
     
     # Handle aliases option
     if args.aliases:

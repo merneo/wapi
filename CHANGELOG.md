@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Domain Search & WHOIS Lookup (2025-12-06)
+- **Search Command** - Domain availability search with WHOIS fallback
+  - Created `wapi/commands/search.py` with comprehensive domain search functionality
+  - `wapi search <domain>` - Check domain availability via WAPI and WHOIS
+  - `wapi -s <domain>` / `wapi --search <domain>` - Top-level alias for search
+  - Automatic WHOIS server discovery for unknown TLDs
+  - Support for custom WHOIS server (`--whois-server`)
+  - Configurable WHOIS timeout (`--whois-timeout`, default: 10 seconds)
+  - WHOIS lookup fallback when WAPI availability is inconclusive
+  - Support for multiple WHOIS response formats (Verisign, CZ.NIC, generic)
+  - Availability inference from WHOIS patterns
+- **WHOIS Integration**:
+  - Direct TCP socket communication with WHOIS servers (port 43)
+  - Default WHOIS servers for common TLDs (.com, .net, .org, .io, .cz, .sk, .info)
+  - IANA WHOIS server discovery for unknown TLDs
+  - Response size limits (1MB) to prevent memory issues
+  - Timeout protection for socket operations
+- **CLI Integration**:
+  - Added `search` subcommand to main CLI parser
+  - Top-level `-s/--search` alias support
+  - `--search-whois-server` and `--search-whois-timeout` options for alias
+- **Comprehensive Test Coverage**:
+  - Added 14 test cases for search functionality in `tests/test_search.py`
+  - Tests for WHOIS socket operations (`_query_whois`)
+  - Tests for WHOIS server discovery (`_discover_whois_server`)
+  - Tests for WHOIS lookup with default/discovered servers (`perform_whois_lookup`)
+  - Tests for error handling (validation errors, request errors)
+  - Tests for availability inference from WHOIS patterns
+  - Tests for API availability interpretation
+  - Tests for CLI alias routing
+  - All tests passing (14/14) ✅
+
 ### Added - Phase 10: Advanced Features & Enhancements (2025-12-06)
 - **Interactive Mode (REPL)** - Interactive shell for running WAPI commands
   - Created `wapi/utils/interactive.py` with WAPIInteractiveShell class

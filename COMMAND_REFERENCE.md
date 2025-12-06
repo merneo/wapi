@@ -72,6 +72,21 @@ wapi domain renew example.com
 wapi domain delete example.com
 ```
 
+## Search Module
+
+### Check Availability + WHOIS
+```bash
+wapi search example.com
+wapi search example.com --format json
+wapi search example.com --whois-server whois.nic.cz --whois-timeout 15
+wapi -s example.com                     # Alias for quick search
+```
+
+The `search` command checks whether a domain is available using the WAPI
+`domains-availability` endpoint. If the domain is registered or the API result
+is inconclusive, it automatically fetches WHOIS data and prints it so you can
+inspect current ownership details.
+
 ## NSSET Module
 
 ### List NSSETs

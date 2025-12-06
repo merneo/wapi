@@ -5,14 +5,16 @@ Provides utilities for performing operations on multiple domains or resources.
 """
 
 import sys
-from typing import List, Dict, Any, Callable, Optional
+from typing import List, Dict, Any, Callable, Optional, TYPE_CHECKING
 
-from ..api.client import WedosAPIClient
+if TYPE_CHECKING:
+    from ..api.client import WedosAPIClient
+
 from ..utils.logger import get_logger
 
 
 def batch_domain_operation(
-    client: WedosAPIClient,
+    client: 'WedosAPIClient',
     domains: List[str],
     operation: Callable,
     operation_name: str,
@@ -63,7 +65,7 @@ def batch_domain_operation(
 
 
 def batch_dns_operation(
-    client: WedosAPIClient,
+    client: 'WedosAPIClient',
     domain: str,
     records: List[Dict[str, Any]],
     operation: Callable,

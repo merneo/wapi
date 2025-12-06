@@ -63,7 +63,3 @@ __all__ = [
     # Config Wizard
     'run_config_wizard',
 ]
-    'enhance_nameserver_with_ipv6',
-    'get_ipv6_from_nameserver',
-    'get_ipv6_from_ipv4',
-]

@@ -360,6 +360,29 @@ wapi domain info example.com --format json
 
 ## Command-Line Tools
 
+### wapi search (availability + WHOIS)
+
+Use the built-in CLI command to check if a domain is available. The command
+first calls the WAPI `domains-availability` endpoint and, if the domain is
+registered or the result is inconclusive, automatically fetches WHOIS data so
+you can review ownership details.
+
+```bash
+cd ~/wapi
+python3 -m wapi search example.com
+
+# With JSON output and custom WHOIS timeout
+python3 -m wapi search example.com --format json --whois-timeout 15
+
+# Short alias
+python3 -m wapi -s example.com
+```
+
+**What you get:**
+- Clear availability flag (`true` or `false`)
+- Source of the decision (WAPI vs WHOIS)
+- WHOIS body when the domain appears registered
+
 ### update_domain_ns.py
 
 Update domain nameservers via command line.

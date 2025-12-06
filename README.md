@@ -24,7 +24,7 @@ WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS set
 - ✅ Multiple output formats (table, JSON, XML, YAML)
 - ✅ Sensitive data filtering
 - ✅ Production-ready and fully tested
-- ✅ **100% test coverage** (822 tests, all passing)
+- ✅ **100% test coverage** (864 tests, all passing)
 
 ## 📚 Complete Documentation
 

@@ -69,6 +69,9 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
     logger.info("Testing credentials with WAPI")
     print("Testing connection...")
     
+    connection_test_passed = False
+    ip_whitelist_issue = False
+    
     try:
         test_client = WedosAPIClient(username, password, use_json=False)
         result = test_client.ping()
@@ -77,20 +80,39 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         
         if code not in ['1000', 1000]:
             error_msg = response.get('result', 'Unknown error')
-            logger.error(f"Authentication failed: {error_msg} (code: {code})")
-            print(f"❌ Authentication failed: {error_msg}", file=sys.stderr)
-            raise WAPIAuthenticationError(f"Authentication failed: {error_msg}")
-        
-        logger.info("Credentials validated successfully")
-        print("✅ Connection successful")
-    except (WAPIConnectionError, WAPIRequestError) as e:
-        logger.error(f"Connection test failed: {e}")
-        print(f"❌ Connection test failed: {e}", file=sys.stderr)
+            code_int = int(code) if isinstance(code, str) and code.isdigit() else code
+            
+            # Check if it's an IP whitelist issue (code 2051)
+            if code_int == 2051 or (isinstance(error_msg, str) and 'Access not allowed from this IP' in error_msg):
+                ip_whitelist_issue = True
+                logger.warning(f"IP whitelist issue detected: {error_msg} (code: {code})")
+                print(f"⚠️  Warning: IP address not whitelisted in WEDOS API", file=sys.stderr)
+                print(f"   Error: {error_msg}", file=sys.stderr)
+                print(f"   Credentials appear valid, but API access is restricted from this IP.", file=sys.stderr)
+                print(f"   Credentials will be saved, but you may need to whitelist your IP in WEDOS panel.", file=sys.stderr)
+                # Don't raise exception - continue to save credentials
+            else:
+                # Real authentication failure
+                logger.error(f"Authentication failed: {error_msg} (code: {code})")
+                print(f"❌ Authentication failed: {error_msg}", file=sys.stderr)
+                raise WAPIAuthenticationError(f"Authentication failed: {error_msg}")
+        else:
+            connection_test_passed = True
+            logger.info("Credentials validated successfully")
+            print("✅ Connection successful")
+    except WAPIAuthenticationError:
+        # Re-raise authentication errors (invalid credentials)
         raise
+    except (WAPIConnectionError, WAPIRequestError) as e:
+        # Network/connection errors - still save credentials
+        logger.warning(f"Connection test failed (network issue): {e}")
+        print(f"⚠️  Connection test failed (network issue): {e}", file=sys.stderr)
+        print(f"   Credentials will be saved, but connection test could not complete.", file=sys.stderr)
     except Exception as e:
-        logger.error(f"Unexpected error during connection test: {e}")
-        print(f"❌ Connection test failed: {e}", file=sys.stderr)
-        raise WAPIConnectionError(f"Connection test failed: {e}") from e
+        # Other unexpected errors - still save credentials
+        logger.warning(f"Unexpected error during connection test: {e}")
+        print(f"⚠️  Connection test failed: {e}", file=sys.stderr)
+        print(f"   Credentials will be saved, but connection test could not complete.", file=sys.stderr)
     
     # Save credentials to config file
     logger.info(f"Saving credentials to {config_file}")
@@ -135,9 +157,19 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         os.chmod(config_file, 0o600)
         
         logger.info("Credentials saved successfully")
-        print(f"✅ Credentials saved to {config_file}")
-        print(f"   Username: {username}")
-        print(f"   Password: {'*' * len(password)}")
+        if connection_test_passed:
+            print(f"✅ Credentials saved to {config_file}")
+            print(f"   Username: {username}")
+            print(f"   Password: {'*' * len(password)}")
+        elif ip_whitelist_issue:
+            print(f"✅ Credentials saved to {config_file} (IP whitelist issue)")
+            print(f"   Username: {username}")
+            print(f"   Password: {'*' * len(password)}")
+            print(f"   ⚠️  Note: Whitelist your IP address in WEDOS panel to use the API", file=sys.stderr)
+        else:
+            print(f"✅ Credentials saved to {config_file} (connection test incomplete)")
+            print(f"   Username: {username}")
+            print(f"   Password: {'*' * len(password)}")
         
         return EXIT_SUCCESS
     except (IOError, OSError, PermissionError) as e:

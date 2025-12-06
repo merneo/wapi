@@ -225,8 +225,8 @@ class TestAuthLoginCommand(unittest.TestCase):
         }
         mock_client.ping.return_value = mock_response
         
-        # cmd_auth_login raises WAPIAuthenticationError, which is then wrapped in WAPIConnectionError
-        with self.assertRaises(WAPIConnectionError):
+        # cmd_auth_login raises WAPIAuthenticationError for real auth failures
+        with self.assertRaises(WAPIAuthenticationError):
             cmd_auth_login(self.mock_args, None)
 
     @patch('wapi.commands.auth.os.chmod')

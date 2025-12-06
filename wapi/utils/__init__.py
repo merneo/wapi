@@ -18,6 +18,15 @@ from .dns_lookup import (
     get_ipv6_from_nameserver,
     get_ipv6_from_ipv4,
 )
+from .aliases import expand_alias, get_aliases, list_aliases
+from .interactive import start_interactive_mode, WAPIInteractiveShell
+from .batch import (
+    batch_domain_operation,
+    batch_dns_operation,
+    read_domains_from_file,
+    write_results_to_file,
+)
+from .config_wizard import run_config_wizard
 
 __all__ = [
     # Formatters
@@ -36,6 +45,24 @@ __all__ = [
     'setup_logging',
     'get_logger',
     # DNS Lookup
+    'enhance_nameserver_with_ipv6',
+    'get_ipv6_from_nameserver',
+    'get_ipv6_from_ipv4',
+    # Aliases
+    'expand_alias',
+    'get_aliases',
+    'list_aliases',
+    # Interactive
+    'start_interactive_mode',
+    'WAPIInteractiveShell',
+    # Batch
+    'batch_domain_operation',
+    'batch_dns_operation',
+    'read_domains_from_file',
+    'write_results_to_file',
+    # Config Wizard
+    'run_config_wizard',
+]
     'enhance_nameserver_with_ipv6',
     'get_ipv6_from_nameserver',
     'get_ipv6_from_ipv4',

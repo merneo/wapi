@@ -71,7 +71,7 @@ def interpret_status_value(value: Any) -> Optional[bool]:
 
     text = str(value).strip().lower()
     if not text: # pragma: no cover
-        return None # pragma: no cover
+        return None
 
     available_values = {"available", "free", "volna", "true", "1", "yes"}
     registered_values = {"registered", "taken", "obsazena", "false", "0", "no"}
@@ -181,8 +181,8 @@ def _discover_whois_server(domain: str, timeout: int) -> Optional[str]:
                     logger.debug(f"Discovered WHOIS server for {tld}: {server}")
                     return server
     except Exception as exc: # pragma: no cover
-        logger.debug(f"WHOIS server discovery failed: {exc}") # pragma: no cover
-    return None # pragma: no cover
+        logger.debug(f"WHOIS server discovery failed: {exc}")
+    return None
 
 
 def _query_whois(server: str, domain: str, timeout: int) -> str:
@@ -240,8 +240,8 @@ def perform_whois_lookup(domain: str, server: Optional[str] = None, timeout: int
     try:
         return _query_whois(target_server, domain, timeout)
     except Exception as exc: # pragma: no cover
-        logger.error(f"WHOIS lookup failed at {target_server}: {exc}") # pragma: no cover
-        raise WAPIRequestError(f"WHOIS lookup failed: {exc}") from exc # pragma: no cover
+        logger.error(f"WHOIS lookup failed at {target_server}: {exc}")
+        raise WAPIRequestError(f"WHOIS lookup failed: {exc}") from exc
 
 
 def infer_availability_from_whois(whois_text: str) -> Optional[bool]:

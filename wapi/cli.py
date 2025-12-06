@@ -390,8 +390,9 @@ def main():
     
     # Execute command
     if hasattr(args, 'func'):
-        # Config commands do not require a client; handle them early.
-        if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
+        # Config and auth commands do not require a client; handle them early.
+        # Auth login/logout are used to SET credentials, so they shouldn't require existing ones.
+        if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set, cmd_auth_login, cmd_auth_logout]:
             return args.func(args)
 
         # Search command can work without full config (uses WHOIS fallback)

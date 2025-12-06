@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/merneo/wapi"
-ARCHIVE_URL="${REPO_URL}/archive/refs/heads/master.zip"
+ARCHIVE_URL="${REPO_URL}/archive/refs/heads/master.zip#egg=wapi-cli"
 
 log() { printf '==> %s\n' "$*"; }
 err() { printf '!! %s\n' "$*" >&2; }

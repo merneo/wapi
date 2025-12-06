@@ -31,7 +31,9 @@ install_with_venv() {
       fi
       log "Attempting to install python3-venv/python3-pip via apt-get"
       ${SUDO} apt-get update -y || true
-      ${SUDO} apt-get install -y python3-venv python3-pip || true
+      # Try version-specific venv first, then generic
+      pyver="$(python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")' 2>/dev/null || echo 3)"
+      ${SUDO} apt-get install -y "python${pyver}-venv" python3-venv python3-pip || true
       ${SUDO} apt-get install -y pipx || true
     else
       err "Missing ensurepip/venv. Install python3-venv (or pipx) and rerun."

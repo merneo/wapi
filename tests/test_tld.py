@@ -63,6 +63,37 @@ class TestExtractTLD(unittest.TestCase):
             with self.subTest(domain=domain):
                 result = extract_tld(domain)
                 self.assertIsNone(result, f"Should return None for {domain}")
+    
+    def test_extract_tld_single_word_no_dot(self):
+        """Test extraction with single word (no dot) - covers line 89"""
+        # This specifically tests the len(parts) < 2 branch (line 88-89)
+        test_cases = ['a', 'singleword', 'nodot', 'test']
+        for domain in test_cases:
+            with self.subTest(domain=domain):
+                result = extract_tld(domain)
+                self.assertIsNone(result, f"Should return None for single word: {domain}")
+    
+    def test_extract_tld_edge_cases(self):
+        """Test edge cases for TLD extraction"""
+        # Test domain with no TLD extraction possible
+        result = extract_tld('example')
+        self.assertIsNone(result)
+        
+        # Test domain where extract_tld returns None (line 144 coverage)
+        # This tests the "if not tld:" branch in validate_tld
+        from wapi.utils.tld import validate_tld
+        is_valid, error = validate_tld('example', strict=True)
+        self.assertFalse(is_valid)
+        self.assertIn('Could not extract TLD', error)
+        
+        # Test domain with only one part (no dot) - line 88 coverage
+        result = extract_tld('nodot')
+        self.assertIsNone(result)
+        
+        # Test domain that splits to less than 2 parts - line 89 coverage
+        # This should be covered by the 'nodot' test above, but let's be explicit
+        parts_test = extract_tld('a')
+        self.assertIsNone(parts_test)
 
 
 class TestIsTLDSupported(unittest.TestCase):

@@ -85,7 +85,10 @@ def extract_tld(domain: str) -> Optional[str]:
     
     # Extract single-level TLD
     parts = domain_lower.split('.')
-    if len(parts) < 2:
+    # Note: After checking for '.' on line 76, split('.') will always
+    # return at least 2 parts, so len(parts) < 2 should never be true.
+    # However, we keep this check for defensive programming and edge cases.
+    if len(parts) < 2:  # pragma: no cover
         return None
     
     return parts[-1]

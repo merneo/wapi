@@ -18,6 +18,7 @@ from ..exceptions import (
     WAPITimeoutError,
 )
 from ..utils.formatters import format_output
+from .helpers import poll_and_check
 from ..utils.logger import get_logger
 from ..utils.validators import validate_domain
 
@@ -183,31 +184,15 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
                 return False
             
             # Poll dns-rows-list
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "dns-rows-list",
                 {"domain": args.domain},
-                is_complete=check_record_added,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_record_added,
+                args,
+                "DNS record added successfully",
+                timeout_error_message="Polling timeout while adding DNS record",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("DNS record added successfully (after polling)")
-                print("✅ DNS record added successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"DNS add polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
@@ -305,31 +290,15 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
                 return False  # Record not found
             
             # Poll dns-rows-list
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "dns-rows-list",
                 {"domain": args.domain},
-                is_complete=check_record_updated,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_record_updated,
+                args,
+                "DNS record updated successfully",
+                timeout_error_message="Polling timeout while updating DNS record",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("DNS record updated successfully (after polling)")
-                print("✅ DNS record updated successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"DNS update polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
@@ -400,29 +369,15 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
                 return True  # Record not found, deleted
             
             # Poll dns-rows-list
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "dns-rows-list",
                 {"domain": args.domain},
-                is_complete=check_record_deleted,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_record_deleted,
+                args,
+                "DNS record deleted successfully",
+                timeout_error_message="Polling timeout while deleting DNS record",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("DNS record deleted successfully (after polling)")
-                print("✅ DNS record deleted successfully")
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"DNS delete polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             return EXIT_SUCCESS
     else:

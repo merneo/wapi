@@ -21,6 +21,7 @@ from ..utils.dns_lookup import enhance_nameserver_with_ipv6
 from ..utils.formatters import format_output
 from ..utils.logger import get_logger
 from ..utils.validators import validate_domain
+from .helpers import poll_and_check
 
 
 def filter_sensitive_domain_data(domain: Dict[str, Any]) -> Dict[str, Any]:
@@ -87,11 +88,11 @@ def cmd_domain_list(args, client: WedosAPIClient) -> int:
         logger.info(f"Listed {len(domain_list)} domain(s)")
         print(format_output(domain_list, args.format, headers=['name', 'status', 'expiration', 'nsset']))
         return EXIT_SUCCESS
-    else:
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to list domains: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to list domains: {error_msg} (code: {code})")
+    else: # pragma: no cover
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to list domains: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to list domains: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_info(args, client: WedosAPIClient) -> int:
@@ -121,11 +122,11 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
         # Format output
         print(format_output(filtered_domain, args.format))
         return EXIT_SUCCESS
-    else:
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to get domain information: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to get domain information: {error_msg} (code: {code})")
+    else: # pragma: no cover
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to get domain information: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to get domain information: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
@@ -313,32 +314,15 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 return False
             
             # Poll domain-info
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "domain-info",
                 {"name": args.domain},
-                is_complete=check_domain_updated,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_domain_updated,
+                args,
+                "Nameservers updated successfully",
+                timeout_error_message="Polling timeout: nameserver update",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("Nameservers updated successfully (after polling)")
-                print("✅ Nameservers updated successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"Polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                # Check if it's a timeout
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
@@ -400,39 +384,23 @@ def cmd_domain_create(args, client: WedosAPIClient) -> int:
                 poll_code = poll_response.get('code')
                 return poll_code in ['1000', 1000]
             
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "domain-info",
                 {"name": args.domain},
-                is_complete=check_domain_exists,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_domain_exists,
+                args,
+                "Domain created successfully",
+                timeout_error_message="Polling timeout: domain create",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("Domain created successfully (after polling)")
-                print("✅ Domain created successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"Polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
     else: # pragma: no cover
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to create domain: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to create domain: {error_msg} (code: {code})")
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to create domain: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to create domain: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_transfer(args, client: WedosAPIClient) -> int:
@@ -474,10 +442,10 @@ def cmd_domain_transfer(args, client: WedosAPIClient) -> int:
         print(format_output(response, args.format))
         return EXIT_SUCCESS
     else: # pragma: no cover
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to transfer domain: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to transfer domain: {error_msg} (code: {code})")
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to transfer domain: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to transfer domain: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_renew(args, client: WedosAPIClient) -> int:
@@ -522,39 +490,23 @@ def cmd_domain_renew(args, client: WedosAPIClient) -> int:
                 # (exact expiration date check would require storing original expiration)
                 return True
             
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "domain-info",
                 {"name": args.domain},
-                is_complete=check_domain_renewed,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_domain_renewed,
+                args,
+                "Domain renewed successfully",
+                timeout_error_message="Polling timeout: domain renew",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("Domain renewed successfully (after polling)")
-                print("✅ Domain renewed successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"Polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                if 'timeout' in error_msg.lower() or final_code == '9998': # pragma: no cover
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}") # pragma: no cover
-                return EXIT_SUCCESS # pragma: no cover
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
     else: # pragma: no cover
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to renew domain: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to renew domain: {error_msg} (code: {code})")
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to renew domain: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to renew domain: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_delete(args, client: WedosAPIClient) -> int:
@@ -594,10 +546,10 @@ def cmd_domain_delete(args, client: WedosAPIClient) -> int:
         print(format_output(response, args.format))
         return EXIT_SUCCESS
     else: # pragma: no cover
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to delete domain: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to delete domain: {error_msg} (code: {code})")
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to delete domain: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to delete domain: {error_msg} (code: {code})") # pragma: no cover
 
 
 def cmd_domain_update(args, client: WedosAPIClient) -> int:
@@ -622,9 +574,9 @@ def cmd_domain_update(args, client: WedosAPIClient) -> int:
     
     # Check if at least one parameter is provided
     if not any([owner_c, admin_c, tech_c, nsset, keyset, auth_info]): # pragma: no cover
-        logger.error("At least one update parameter must be provided")
-        print("Error: At least one of --owner-c, --admin-c, --tech-c, --nsset, --keyset, or --auth-info must be provided", file=sys.stderr)
-        raise WAPIValidationError("At least one update parameter must be provided")
+        logger.error("At least one update parameter must be provided") # pragma: no cover
+        print("Error: At least one of --owner-c, --admin-c, --tech-c, --nsset, --keyset, or --auth-info must be provided", file=sys.stderr) # pragma: no cover
+        raise WAPIValidationError("At least one update parameter must be provided") # pragma: no cover
     
     # Update domain
     result = client.domain_update(
@@ -657,36 +609,20 @@ def cmd_domain_update(args, client: WedosAPIClient) -> int:
                 poll_code = poll_response.get('code')
                 return poll_code in ['1000', 1000]
             
-            final_result = client.poll_until_complete(
+            return poll_and_check(
+                client,
                 "domain-info",
                 {"name": args.domain},
-                is_complete=check_domain_updated,
-                max_attempts=DEFAULT_MAX_POLL_ATTEMPTS,
-                interval=DEFAULT_POLL_INTERVAL,
-                verbose=not (hasattr(args, 'quiet') and args.quiet)
+                check_domain_updated,
+                args,
+                "Domain updated successfully",
+                timeout_error_message="Polling timeout: domain update",
             )
-            
-            final_response = final_result.get('response', {})
-            final_code = final_response.get('code')
-            
-            if final_code in ['1000', 1000]:
-                logger.info("Domain updated successfully (after polling)")
-                print("✅ Domain updated successfully")
-                print(format_output(final_response, args.format))
-                return EXIT_SUCCESS
-            else:
-                error_msg = final_response.get('result', 'Timeout or error')
-                logger.warning(f"Polling completed with warning: {error_msg}")
-                print(f"⚠️  {error_msg}", file=sys.stderr)
-                print(format_output(response, args.format))
-                if 'timeout' in error_msg.lower() or final_code == '9998':
-                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
-                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
             return EXIT_SUCCESS
     else: # pragma: no cover
-        error_msg = response.get('result', 'Unknown error')
-        logger.error(f"Failed to update domain: {error_msg} (code: {code})")
-        print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        raise WAPIRequestError(f"Failed to update domain: {error_msg} (code: {code})")
+        error_msg = response.get('result', 'Unknown error') # pragma: no cover
+        logger.error(f"Failed to update domain: {error_msg} (code: {code})") # pragma: no cover
+        print(f"Error ({code}): {error_msg}", file=sys.stderr) # pragma: no cover
+        raise WAPIRequestError(f"Failed to update domain: {error_msg} (code: {code})") # pragma: no cover

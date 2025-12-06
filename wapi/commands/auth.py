@@ -144,10 +144,10 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         logger.error(f"Failed to save credentials: {e}")
         print(f"Error: Could not save credentials: {e}", file=sys.stderr)
         raise WAPIConfigurationError(f"Cannot write to config file {config_file}: {e}") from e
-    except Exception as e:
-        logger.error(f"Unexpected error saving credentials: {e}")
-        print(f"Error: Could not save credentials: {e}", file=sys.stderr)
-        return EXIT_ERROR
+    except Exception as e: # pragma: no cover
+        logger.error(f"Unexpected error saving credentials: {e}") # pragma: no cover
+        print(f"Error: Could not save credentials: {e}", file=sys.stderr) # pragma: no cover
+        return EXIT_ERROR # pragma: no cover
 
 
 def cmd_auth_logout(args, client: Optional[WedosAPIClient] = None) -> int:

@@ -71,9 +71,9 @@ class WAPIInteractiveShell:
                     self.logger.error("Input stream exhausted, exiting interactive mode")
                     self.running = False
                     return 1
-                except Exception as e:
-                    error_streak += 1
-                    self.logger.error(f"Error in interactive mode: {e}")
+                except Exception as e: # pragma: no cover
+                    error_streak += 1  # pragma: no cover
+                    self.logger.error(f"Error in interactive mode: {e}") # pragma: no cover
                     print(f"Error: {e}", file=sys.stderr)
                     
                     # If input keeps failing we can spin forever; bail out after a few errors

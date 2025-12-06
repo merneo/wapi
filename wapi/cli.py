@@ -24,6 +24,7 @@ from .exceptions import (
     WAPIConnectionError,
     WAPITimeoutError,
     WAPIRequestError,
+    WAPIValidationError,
     WAPIError,
 )
 from .utils.formatters import format_output
@@ -392,6 +393,40 @@ def main():
         # Config commands do not require a client; handle them early.
         if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
             return args.func(args)
+
+        # Search command can work without full config (uses WHOIS fallback)
+        # Check by function name or identity to handle both real and mocked functions
+        is_search = (args.func == cmd_search or 
+                    (hasattr(args.func, '__name__') and args.func.__name__ == 'cmd_search') or
+                    (hasattr(args, 'module') and args.module == 'search'))
+        if is_search:
+            try:
+                client = get_client(args.config)
+            except WAPIConfigurationError:
+                # Search can work without config, just use WHOIS
+                client = None
+            except Exception as e:
+                # Any other error getting client - search can still try WHOIS
+                logger.warning(f"Could not get API client for search: {e}")
+                client = None
+            try:
+                return args.func(args, client)
+            except WAPIConfigurationError as e:
+                logger.error(f"Configuration error: {e}")
+                print(f"Error: {e}", file=sys.stderr)
+                return EXIT_CONFIG_ERROR
+            except WAPIAuthenticationError as e:
+                logger.error(f"Authentication error: {e}")
+                print(f"Error: {e}", file=sys.stderr)
+                return EXIT_AUTH_ERROR
+            except WAPIConnectionError as e:
+                logger.error(f"Connection error: {e}")
+                print(f"Error: {e}", file=sys.stderr)
+                return EXIT_CONNECTION_ERROR
+            except (WAPIRequestError, WAPIValidationError) as e:
+                logger.error(f"Request error: {e}")
+                print(f"Error: {e}", file=sys.stderr)
+                return EXIT_ERROR
 
         # Get API client for other commands
         try:

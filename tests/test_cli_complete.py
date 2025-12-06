@@ -505,7 +505,204 @@ class TestCLIComplete(unittest.TestCase):
                                                                                                                                
         result = main()                                                                                                        
                                                                                                                                
-        self.assertEqual(result, EXIT_CONNECTION_ERROR)                                                                        
+        self.assertEqual(result, EXIT_CONNECTION_ERROR)
+
+    @patch('wapi.commands.search.perform_whois_lookup')
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_without_config(self, mock_parser_class, mock_get_client, mock_whois):
+        """Test search command without config (should work with WHOIS only)"""
+        from wapi.commands.search import cmd_search
+        
+        # Mock WHOIS to return available domain response
+        mock_whois.return_value = "No match for DOMAIN"
+        
+        mock_parser = Mock()
+        mock_args = Mock()
+        mock_args.func = cmd_search
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        # Set whois attributes properly
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        # get_client raises WAPIConfigurationError (no config)
+        # This should be caught and client set to None
+        mock_get_client.side_effect = WAPIConfigurationError("No config")
+        
+        result = main()
+        
+        # Should succeed even without config (uses WHOIS)
+        self.assertEqual(result, EXIT_SUCCESS)
+        # Verify WHOIS was called (search worked without API client)
+        mock_whois.assert_called_once()
+
+    @patch('wapi.commands.search.perform_whois_lookup')
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_with_config_error_handling(self, mock_parser_class, mock_get_client, mock_whois):
+        """Test search command error handling"""
+        from wapi.commands.search import cmd_search
+        from wapi.exceptions import WAPIRequestError
+        
+        # Mock WHOIS to fail
+        mock_whois.side_effect = Exception("WHOIS failed")
+        
+        mock_parser = Mock()
+        mock_args = Mock()
+        mock_args.func = cmd_search
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        mock_get_client.side_effect = WAPIConfigurationError("No config")
+        
+        result = main()
+        
+        self.assertEqual(result, EXIT_ERROR)
+
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_auth_error(self, mock_parser_class, mock_get_client):
+        """Test search command with authentication error"""
+        from wapi.commands.search import cmd_search
+        from wapi.exceptions import WAPIAuthenticationError
+        from wapi.constants import EXIT_AUTH_ERROR
+        
+        mock_parser = Mock()
+        mock_args = Mock()
+        # Create a mock function that raises the error
+        def mock_search_func(*args, **kwargs):
+            raise WAPIAuthenticationError("Auth failed")
+        mock_args.func = mock_search_func
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        mock_get_client.return_value = Mock()
+        
+        result = main()
+        self.assertEqual(result, EXIT_AUTH_ERROR)
+
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_connection_error(self, mock_parser_class, mock_get_client):
+        """Test search command with connection error"""
+        from wapi.commands.search import cmd_search
+        from wapi.exceptions import WAPIConnectionError
+        from wapi.constants import EXIT_CONNECTION_ERROR
+        
+        mock_parser = Mock()
+        mock_args = Mock()
+        # Create a mock function that raises the error
+        def mock_search_func(*args, **kwargs):
+            raise WAPIConnectionError("Connection failed")
+        mock_args.func = mock_search_func
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        mock_get_client.return_value = Mock()
+        
+        result = main()
+        self.assertEqual(result, EXIT_CONNECTION_ERROR)
+
+    @patch('wapi.commands.search.perform_whois_lookup')
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_generic_exception_getting_client(self, mock_parser_class, mock_get_client, mock_whois):
+        """Test search command with generic exception getting client (lines 408-411)"""
+        from wapi.commands.search import cmd_search
+        
+        mock_whois.return_value = "No match"
+        
+        mock_parser = Mock()
+        mock_args = Mock()
+        mock_args.func = cmd_search
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        # get_client raises generic Exception (not WAPIConfigurationError)
+        mock_get_client.side_effect = ValueError("Some other error")
+        
+        result = main()
+        
+        # Should succeed even with generic exception (uses WHOIS)
+        self.assertEqual(result, EXIT_SUCCESS)
+        mock_whois.assert_called_once()
+
+    @patch('wapi.cli.get_client')
+    @patch('wapi.cli.argparse.ArgumentParser')
+    def test_main_search_config_error_in_handler(self, mock_parser_class, mock_get_client):
+        """Test search command with WAPIConfigurationError in handler (lines 415-417)"""
+        mock_parser = Mock()
+        mock_args = Mock()
+        def mock_search_func(*args, **kwargs):
+            from wapi.exceptions import WAPIConfigurationError
+            raise WAPIConfigurationError("Config error in search")
+        mock_args.func = mock_search_func
+        mock_args.module = 'search'
+        mock_args.domain = 'example.com'
+        mock_args.wizard = False
+        mock_args.interactive = False
+        mock_args.aliases = False
+        mock_args.search_domain = None
+        mock_args.config = 'config.env'
+        mock_args.format = 'table'
+        type(mock_args).whois_server = None
+        type(mock_args).whois_timeout = 10
+        mock_parser.parse_args.return_value = mock_args
+        mock_parser_class.return_value = mock_parser
+        
+        mock_get_client.return_value = Mock()
+        
+        result = main()
+        self.assertEqual(result, EXIT_CONFIG_ERROR)
                                                                                                                                
                                                                                                                                
 if __name__ == '__main__':                                                                                                     

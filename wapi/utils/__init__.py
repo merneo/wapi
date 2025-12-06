@@ -12,6 +12,13 @@ from .validators import (
     validate_nameserver,
     validate_email,
 )
+from .tld import (
+    extract_tld,
+    is_tld_supported,
+    validate_tld,
+    get_supported_tlds,
+    get_tld_category,
+)
 from .logger import setup_logging, get_logger
 from .dns_lookup import (
     enhance_nameserver_with_ipv6,
@@ -41,6 +48,12 @@ __all__ = [
     'validate_ipv6',
     'validate_nameserver',
     'validate_email',
+    # TLD utilities
+    'extract_tld',
+    'is_tld_supported',
+    'validate_tld',
+    'get_supported_tlds',
+    'get_tld_category',
     # Logger
     'setup_logging',
     'get_logger',

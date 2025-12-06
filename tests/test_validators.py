@@ -32,6 +32,35 @@ class TestDomainValidation(unittest.TestCase):
             self.assertTrue(is_valid, f"Domain {domain} should be valid: {error}")
             self.assertIsNone(error)
     
+    def test_valid_domains_with_tld_check(self):
+        """Test valid domain names with TLD checking enabled"""
+        valid_domains = [
+            'example.com',
+            'test.cz',
+            'domain.sk',
+            'site.eu',
+            'example.co.uk',
+        ]
+        
+        for domain in valid_domains:
+            is_valid, error = validate_domain(domain, check_tld=True)
+            self.assertTrue(is_valid, f"Domain {domain} should be valid with TLD check: {error}")
+            self.assertIsNone(error)
+    
+    def test_invalid_tld_with_check(self):
+        """Test domains with unsupported TLDs when TLD checking is enabled"""
+        invalid_domains = [
+            'example.invalid',
+            'test.notsupported',
+            'domain.xyz123',
+        ]
+        
+        for domain in invalid_domains:
+            is_valid, error = validate_domain(domain, check_tld=True)
+            self.assertFalse(is_valid, f"Domain {domain} should be invalid with TLD check")
+            self.assertIsNotNone(error)
+            self.assertIn('not supported', error.lower())
+    
     def test_invalid_domains(self):
         """Test invalid domain names"""
         invalid_domains = [

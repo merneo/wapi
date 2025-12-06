@@ -8,14 +8,16 @@ import re
 from typing import Optional, Tuple
 
 from .logger import get_logger
+from .tld import validate_tld, extract_tld
 
 
-def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
+def validate_domain(domain: str, check_tld: bool = False) -> Tuple[bool, Optional[str]]:
     """
     Validate domain name format.
     
     Args:
         domain: Domain name to validate
+        check_tld: If True, also validate that TLD is supported by WEDOS
         
     Returns:
         Tuple of (is_valid, error_message)
@@ -25,6 +27,8 @@ def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
         (True, None)
         >>> validate_domain('invalid..domain')
         (False, 'Contains consecutive dots')
+        >>> validate_domain('example.com', check_tld=True)
+        (True, None)
     """
     logger = get_logger('utils.validators')
     
@@ -47,6 +51,13 @@ def validate_domain(domain: str) -> Tuple[bool, Optional[str]]:
     if '.' not in domain:
         logger.debug(f"Domain validation failed: {domain} - missing dot")
         return False, "Domain must contain at least one dot"
+    
+    # Optional TLD validation
+    if check_tld:
+        tld_valid, tld_error = validate_tld(domain, strict=True)
+        if not tld_valid:
+            logger.debug(f"TLD validation failed: {domain} - {tld_error}")
+            return False, tld_error
     
     logger.debug(f"Domain validation passed: {domain}")
     return True, None

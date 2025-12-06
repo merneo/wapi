@@ -291,6 +291,23 @@ def cmd_search(args, client: Optional[WedosAPIClient] = None) -> int:
             availability = interpret_api_availability(api_result, args.domain)
             if availability is not None:
                 availability_source = "wapi"
+            else:
+                # If the XML endpoint is not available (e.g., code 2010 Unknown command),
+                # retry once using the JSON endpoint which some deployments enable instead.
+                response = api_result.get("response", {}) if isinstance(api_result, dict) else {}
+                code = response.get("code")
+                if str(code) == "2010":
+                    logger.info("Retrying availability via JSON endpoint after 2010 Unknown command")
+                    try:
+                        json_client = WedosAPIClient(
+                            client.username, client.password, use_json=True
+                        )
+                        api_result_json = json_client.domain_availability(args.domain)
+                        availability = interpret_api_availability(api_result_json, args.domain)
+                        if availability is not None:
+                            availability_source = "wapi"
+                    except Exception as json_exc:  # pragma: no cover - best-effort fallback
+                        logger.warning(f"JSON availability fallback failed: {json_exc}")
         except Exception as exc:
             logger.warning(f"WAPI availability lookup failed: {exc}")
 

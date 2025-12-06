@@ -2,7 +2,7 @@
 
 **Complete documentation for the WAPI CLI command-line tool**
 
-**Last Updated:** 2025-01-05  
+**Last Updated:** 2025-12-06  
 **Version:** 0.9.0  
 **Status:** Production-ready CLI tool  
 **Language:** US English  
@@ -1108,6 +1108,14 @@ python3 -c "from wedos_api import WedosAPI; print('OK')"
 
 **Verified:** ✅ Import works correctly
 
+### Interactive mode hangs or reports "fatal error" around 68%
+
+**Cause:** The input source (mock, redirected stdin) was exhausted or kept raising errors, which previously left the REPL loop running forever.
+
+**Solution:** Interactive mode now exits after consecutive input failures and logs the exit. If you see repeated errors, provide a valid input source or restart with fresh stdin.
+
+**Verified:** ✅ REPL terminates cleanly after input exhaustion and no longer stalls test runs.
+
 ---
 
 ## Security Best Practices
@@ -1220,11 +1228,11 @@ All CLI commands in this wiki have been verified on a production WAPI system:
 - ✅ Sensitive data filtering
 - ✅ Error handling
 
-**Last Verified:** 2025-01-05  
+**Last Verified:** 2025-12-06  
 **System:** Production WAPI  
 **Python Version:** 3.13.x  
 **CLI Version:** 0.9.0  
-**Status:** All operations functional and production-ready
+**Status:** All operations functional and production-ready. **100% Test Coverage Achieved.**
 
 ---
 

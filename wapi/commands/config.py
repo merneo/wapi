@@ -72,24 +72,36 @@ def cmd_config_set(args, client=None) -> int:
                     value = value.strip().strip('"').strip("'")
                     config[key] = value
     
-    # Update value
-    config[args.key] = args.value
-    
-    # Write back
-    try:
-        with open(config_file, 'w', encoding='utf-8') as f:
-            for key, value in config.items():
-                if 'PASSWORD' in key.upper():
-                    f.write(f'{key}="[HIDDEN]"\n')
-                else:
-                    f.write(f'{key}="{value}"\n')
+    # Update value using helper to simplify testing/mocking
+    success = set_config_value(config_file, config, args.key, args.value)
+    if success:
         print(f"✅ Set {args.key} in {args.config}")
         return EXIT_SUCCESS
-    except (IOError, OSError, PermissionError) as e:
-        logger.error(f"Could not write to {args.config}: {e}")
-        print(f"Error: Could not write to {args.config}: {e}", file=sys.stderr)
-        raise WAPIConfigurationError(f"Cannot write to config file {args.config}: {e}") from e
-    except Exception as e:
-        logger.error(f"Unexpected error writing config: {e}")
-        print(f"Error: Could not write to {args.config}: {e}", file=sys.stderr)
+    else:
         return EXIT_ERROR
+
+
+def set_config_value(config_file: Path, config: dict, key: str, value: str) -> bool:
+    """
+    Helper to persist a single config value.
+    Extracted to allow straightforward patching in tests.
+    """
+    try:
+        config[key] = value
+        with open(config_file, 'w', encoding='utf-8') as f:
+            for k, v in config.items():
+                if 'PASSWORD' in k.upper():
+                    f.write(f'{k}="[HIDDEN]"\n')
+                else:
+                    f.write(f'{k}="{v}"\n')
+        return True
+    except (IOError, OSError, PermissionError) as e:
+        logger = get_logger('commands.config')
+        logger.error(f"Could not write to {config_file}: {e}")
+        print(f"Error: Could not write to {config_file}: {e}", file=sys.stderr)
+        raise WAPIConfigurationError(f"Cannot write to config file {config_file}: {e}") from e
+    except Exception as e:
+        logger = get_logger('commands.config')
+        logger.error(f"Unexpected error writing config: {e}")
+        print(f"Error: Could not write to {config_file}: {e}", file=sys.stderr)
+        return False

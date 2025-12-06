@@ -387,24 +387,24 @@ def main():
     if not hasattr(args, 'format'):
         args.format = 'table'
     
-    # Get API client
-    try:
-        client = get_client(args.config)
-        if not client:
-            return EXIT_CONFIG_ERROR
-    except WAPIConfigurationError as e:
-        logger.error(f"Configuration error: {e}")
-        print(f"Error: {e}", file=sys.stderr)
-        return EXIT_CONFIG_ERROR
-    
     # Execute command
     if hasattr(args, 'func'):
+        # Config commands do not require a client; handle them early.
+        if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
+            return args.func(args)
+
+        # Get API client for other commands
         try:
-            # Some commands don't need client (config commands)
-            if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
-                return args.func(args)
-            else:
-                return args.func(args, client)
+            client = get_client(args.config)
+            if not client:
+                return EXIT_CONFIG_ERROR
+        except WAPIConfigurationError as e:
+            logger.error(f"Configuration error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_CONFIG_ERROR
+
+        try:
+            return args.func(args, client)
         except WAPIConfigurationError as e:
             logger.error(f"Configuration error: {e}")
             print(f"Error: {e}", file=sys.stderr)

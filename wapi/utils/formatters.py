@@ -35,7 +35,7 @@ def format_table(data: Any, headers: List[str] = None) -> str:
     Returns:
         Formatted table string
     """
-    if not TABULATE_AVAILABLE:
+    if not TABULATE_AVAILABLE or 'tabulate' not in globals():
         # Fallback simple table
         if isinstance(data, list) and data and isinstance(data[0], dict):
             if not headers:
@@ -88,15 +88,26 @@ def format_xml(data: Any) -> str:
     Returns:
         Formatted XML string
     """
-    # Simple XML formatting - for complex structures, use xml.etree.ElementTree
+    def _to_xml(key, value, indent="  "):
+        spaces = indent
+        if isinstance(value, dict):
+            inner = []
+            inner.append(f"{spaces}  <!-- ... -->")
+            for k, v in value.items():
+                inner.append(_to_xml(k, v, indent + "  "))
+            inner_str = "\n".join(inner)
+            return f"{spaces}<{key}>\n{inner_str}\n{spaces}</{key}>"
+        elif isinstance(value, list):
+            inner_items = "\n".join(_to_xml(key, v, indent + "  ") for v in value)
+            inner = f"{spaces}  <!-- ... -->\n{inner_items}"
+            return f"{spaces}<{key}_list>\n{inner}\n{spaces}</{key}_list>"
+        else:
+            return f"{spaces}<{key}>{value}</{key}>"
+
     if isinstance(data, dict):
         lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<response>']
         for key, value in data.items():
-            if isinstance(value, (dict, list)):
-                # Recursive handling would be needed for complex structures
-                lines.append(f'  <{key}>...</{key}>')
-            else:
-                lines.append(f'  <{key}>{value}</{key}>')
+            lines.append(_to_xml(key, value))
         lines.append('</response>')
         return '\n'.join(lines)
     return str(data)
@@ -112,7 +123,7 @@ def format_yaml(data: Any) -> str:
     Returns:
         Formatted YAML string
     """
-    if not YAML_AVAILABLE:
+    if not YAML_AVAILABLE or 'yaml' not in globals():
         return format_json(data)  # Fallback to JSON
     
     return yaml.dump(data, default_flow_style=False, allow_unicode=True)

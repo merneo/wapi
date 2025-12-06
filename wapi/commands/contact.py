@@ -75,8 +75,20 @@ def cmd_contact_info(args, client: WedosAPIClient) -> int:
 def cmd_contact_list(args, client: WedosAPIClient) -> int:
     """Handle contact list command"""
     logger = get_logger('commands.contact')
-    # WAPI may not have direct contact-list command
-    logger.warning("Contact list command not yet implemented")
-    print("Error: Contact list command not yet implemented", file=sys.stderr)
-    print("WAPI may require a different command for listing contacts", file=sys.stderr)
+    result = client.call("contact-list", {})
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code in ['1000', 1000]:
+        contacts = response.get('data', {}).get('contact', [])
+        if not isinstance(contacts, list):
+            contacts = [contacts]
+        filtered = [filter_sensitive_contact_data(c) for c in contacts if isinstance(c, dict)]
+        print(format_output(filtered, args.format))
+        logger.info(f"Listed {len(filtered)} contact(s)")
+        return EXIT_SUCCESS
+    
+    error_msg = response.get('result', 'Contact list command not yet implemented')
+    logger.warning(f"Failed to list contacts: {error_msg} (code: {code})")
+    print(f"Error: Contact list failed - {error_msg}", file=sys.stderr)
     raise WAPIRequestError("Contact list command not yet implemented")

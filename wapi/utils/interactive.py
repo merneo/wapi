@@ -33,19 +33,25 @@ class WAPIInteractiveShell:
         self.running = True
         self.command_history = []
         
-    def run(self):
+    def run(self, _input_mock=None):
         """Start the interactive shell"""
         self.logger.info("Starting interactive mode")
         print("WAPI CLI Interactive Mode")
         print("Type 'help' for available commands, 'exit' or 'quit' to exit")
         print("=" * 60)
         
+        # Use provided input mock or builtin input
+        input_func = _input_mock if _input_mock is not None else input
+        error_streak = 0  # protects against infinite loops when input keeps failing
+        
         try:
             while self.running:
                 try:
                     # Get user input
-                    line = input("wapi> ").strip()
-                    
+                    line = input_func("wapi> ")
+                    error_streak = 0  # reset after a successful read
+                    line = line.strip()
+
                     if not line:
                         continue
                     
@@ -60,9 +66,20 @@ class WAPIInteractiveShell:
                 except EOFError:
                     print("\nExiting...")
                     break
+                except StopIteration:
+                    # Common when a mocked input iterator is exhausted during tests
+                    self.logger.error("Input stream exhausted, exiting interactive mode")
+                    self.running = False
+                    return 1
                 except Exception as e:
+                    error_streak += 1
                     self.logger.error(f"Error in interactive mode: {e}")
                     print(f"Error: {e}", file=sys.stderr)
+                    
+                    # If input keeps failing we can spin forever; bail out after a few errors
+                    if error_streak >= 3:
+                        self.logger.error("Too many consecutive errors, stopping interactive mode")
+                        raise RuntimeError("Too many consecutive input errors")
                     
         except Exception as e:
             self.logger.error(f"Fatal error in interactive mode: {e}")
@@ -219,15 +236,16 @@ Use '--help' after any command for detailed help.
         print("Use 'wapi config {subcommand}' from command line for full functionality")
 
 
-def start_interactive_mode(client: 'WedosAPIClient') -> int:
+def start_interactive_mode(client: 'WedosAPIClient', _input_mock=None) -> int:
     """
     Start interactive mode (REPL).
     
     Args:
         client: Configured WEDOS API client
+        _input_mock: Optional mock for input function (for testing)
         
     Returns:
         Exit code (0 for success, non-zero for error)
     """
     shell = WAPIInteractiveShell(client)
-    return shell.run()
+    return shell.run(_input_mock=_input_mock)

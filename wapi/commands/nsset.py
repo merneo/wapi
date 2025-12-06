@@ -209,9 +209,18 @@ def cmd_nsset_info(args, client: WedosAPIClient) -> int:
 def cmd_nsset_list(args, client: WedosAPIClient) -> int:
     """Handle nsset list command"""
     logger = get_logger('commands.nsset')
-    # WAPI may not have direct nsset-list command
-    # This might need to be implemented differently
+    result = client.call("nsset-list", {})
+    response = result.get('response', {})
+    code = response.get('code')
+    
+    if code in ['1000', 1000]:
+        nssets = response.get('data', {}).get('nsset', [])
+        if not isinstance(nssets, list):
+            nssets = [nssets]
+        print(format_output(nssets, args.format))
+        logger.info(f"Listed {len(nssets)} NSSET(s)")
+        return EXIT_SUCCESS
+    
     logger.warning("NSSET list command not yet implemented")
     print("Error: NSSET list command not yet implemented", file=sys.stderr)
-    print("WAPI may require a different command for listing NSSETs", file=sys.stderr)
     raise WAPIRequestError("NSSET list command not yet implemented")

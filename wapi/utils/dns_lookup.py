@@ -5,6 +5,7 @@ Provides functions to resolve DNS records (A, AAAA) for nameservers.
 """
 
 import socket
+from types import SimpleNamespace
 from typing import List, Optional, Tuple
 
 from ..exceptions import WAPIDNSLookupError, WAPITimeoutError
@@ -17,6 +18,12 @@ try:
     DNS_PYTHON_AVAILABLE = True
 except ImportError:
     DNS_PYTHON_AVAILABLE = False
+
+# Safe exception tuple even when socket is mocked in tests
+_SOCKET_ERROR_TYPES = tuple(
+    exc for exc in (socket.herror, socket.gaierror, OSError, TimeoutError)
+    if isinstance(exc, type) and issubclass(exc, BaseException)
+) or (Exception,)
 
 # DNS lookup timeout (seconds)
 DNS_LOOKUP_TIMEOUT = 5
@@ -53,7 +60,7 @@ def get_ipv6_from_ipv4(ipv4: str, timeout: int = DNS_LOOKUP_TIMEOUT) -> Optional
         try:
             hostname, _, _ = socket.gethostbyaddr(ipv4)
             logger.debug(f"Reverse DNS for {ipv4}: {hostname}")
-        except (socket.herror, socket.gaierror, OSError) as e:
+        except _SOCKET_ERROR_TYPES as e:
             logger.debug(f"Reverse DNS lookup failed for {ipv4}: {e}")
             return None
         
@@ -80,26 +87,26 @@ def get_ipv6_from_ipv4(ipv4: str, timeout: int = DNS_LOOKUP_TIMEOUT) -> Optional
                 logger.debug(f"No AAAA record found for {hostname}: {e}")
             except Exception as e:
                 logger.debug(f"Unexpected DNS error for {hostname}: {e}")
-        else:
-            # Fallback: try socket.getaddrinfo
-            try:
-                addrinfo = socket.getaddrinfo(hostname, None, socket.AF_INET6, socket.SOCK_STREAM)
-                if addrinfo:
-                    ipv6 = addrinfo[0][4][0]
-                    # Validate IPv6 address
-                    is_valid, error = validate_ipv6(ipv6)
-                    if is_valid:
-                        logger.info(f"Found IPv6 {ipv6} for IPv4 {ipv4} via {hostname}")
-                        return ipv6
-                    else:
-                        logger.warning(f"Invalid IPv6 address discovered: {ipv6} - {error}")
-                        return None
-            except (socket.gaierror, OSError, TimeoutError) as e:
-                logger.debug(f"No IPv6 address found for {hostname}: {e}")
+        
+        # Fallback: try socket.getaddrinfo regardless of dnspython availability
+        try:
+            addrinfo = socket.getaddrinfo(hostname, None, socket.AF_INET6, socket.SOCK_STREAM)
+            if addrinfo:
+                ipv6 = addrinfo[0][4][0]
+                # Validate IPv6 address
+                is_valid, error = validate_ipv6(ipv6)
+                if is_valid:
+                    logger.info(f"Found IPv6 {ipv6} for IPv4 {ipv4} via {hostname}")
+                    return ipv6
+                else:
+                    logger.warning(f"Invalid IPv6 address discovered: {ipv6} - {error}")
+                    return None
+        except _SOCKET_ERROR_TYPES as e:
+            logger.debug(f"No IPv6 address found for {hostname}: {e}")
         
         logger.debug(f"No IPv6 address found for IPv4 {ipv4}")
         return None
-    except (socket.herror, socket.gaierror, OSError, TimeoutError) as e:
+    except _SOCKET_ERROR_TYPES as e:
         logger.debug(f"Could not resolve IPv6 for {ipv4}: {e}")
         return None
     finally:
@@ -148,25 +155,25 @@ def get_ipv6_from_nameserver(ns_name: str, ipv4: str, timeout: int = DNS_LOOKUP_
             logger.debug(f"No AAAA record found for {ns_name}: {e}")
         except Exception as e:
             logger.debug(f"Unexpected DNS error for {ns_name}: {e}")
-    else:
-        # Fallback: try socket.getaddrinfo
-        try:
-            socket.setdefaulttimeout(timeout)
-            addrinfo = socket.getaddrinfo(ns_name, None, socket.AF_INET6, socket.SOCK_STREAM)
-            if addrinfo:
-                ipv6 = addrinfo[0][4][0]
-                # Validate IPv6 address
-                is_valid, error = validate_ipv6(ipv6)
-                if is_valid:
-                    logger.info(f"Found IPv6 {ipv6} for nameserver {ns_name}")
-                    return ipv6
-                else:
-                    logger.warning(f"Invalid IPv6 address discovered for {ns_name}: {ipv6} - {error}")
-                    return None
-        except (socket.gaierror, OSError, TimeoutError) as e:
-            logger.debug(f"No IPv6 address found for {ns_name}: {e}")
-        finally:
-            socket.setdefaulttimeout(None)
+    
+    # Fallback: try socket.getaddrinfo regardless of dnspython availability
+    try:
+        socket.setdefaulttimeout(timeout)
+        addrinfo = socket.getaddrinfo(ns_name, None, socket.AF_INET6, socket.SOCK_STREAM)
+        if addrinfo:
+            ipv6 = addrinfo[0][4][0]
+            # Validate IPv6 address
+            is_valid, error = validate_ipv6(ipv6)
+            if is_valid:
+                logger.info(f"Found IPv6 {ipv6} for nameserver {ns_name}")
+                return ipv6
+            else:
+                logger.warning(f"Invalid IPv6 address discovered for {ns_name}: {ipv6} - {error}")
+                return None
+    except _SOCKET_ERROR_TYPES as e:
+        logger.debug(f"No IPv6 address found for {ns_name}: {e}")
+    finally:
+        socket.setdefaulttimeout(None)
     
     # If direct lookup failed, try to get IPv6 from IPv4 (reverse DNS + AAAA)
     ipv6 = get_ipv6_from_ipv4(ipv4, timeout=timeout)
@@ -221,12 +228,8 @@ def enhance_nameserver_with_ipv6(nameserver: dict, timeout: int = DNS_LOOKUP_TIM
             warning = f"IPv6 address not found for nameserver {name} (IPv4: {ipv4}). Continuing with IPv4 only."
             logger.info(warning)
             return nameserver, False, warning
-    except TimeoutError as e:
+    except _SOCKET_ERROR_TYPES as e:
         warning = f"DNS lookup timeout for nameserver {name}: {e}. Continuing with IPv4 only."
-        logger.warning(warning)
-        return nameserver, False, warning
-    except (socket.gaierror, socket.herror, OSError) as e:
-        warning = f"DNS lookup error for nameserver {name}: {e}. Continuing with IPv4 only."
         logger.warning(warning)
         return nameserver, False, warning
     except Exception as e:

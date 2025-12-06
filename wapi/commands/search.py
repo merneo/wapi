@@ -16,6 +16,7 @@ from ..exceptions import WAPIRequestError, WAPIValidationError
 from ..utils.formatters import format_output
 from ..utils.logger import get_logger
 from ..utils.validators import validate_domain
+from ..config import get_config
 
 # Common WHOIS servers by TLD for faster lookups
 DEFAULT_WHOIS_SERVERS = {
@@ -147,6 +148,20 @@ def interpret_api_availability(api_result: Dict[str, Any], domain: str) -> Optio
     return None
 
 
+def get_client(config_file: Optional[str] = None) -> Optional[WedosAPIClient]:
+    """
+    Small helper so tests can patch ``wapi.commands.search.get_client`` safely.
+    """
+    username = get_config('WAPI_USERNAME', config_file=config_file)
+    password = get_config('WAPI_PASSWORD', config_file=config_file)
+    if not (username and password):
+        return None
+    try:
+        return WedosAPIClient(username, password, use_json=False)
+    except Exception:
+        return None
+
+
 def _discover_whois_server(domain: str, timeout: int) -> Optional[str]:
     """
     Ask IANA for the authoritative WHOIS server for the domain's TLD.
@@ -248,7 +263,7 @@ def infer_availability_from_whois(whois_text: str) -> Optional[bool]:
     return None
 
 
-def cmd_search(args, client: WedosAPIClient) -> int:
+def cmd_search(args, client: Optional[WedosAPIClient] = None) -> int:
     """
     Handle `wapi search` command.
     """
@@ -266,14 +281,18 @@ def cmd_search(args, client: WedosAPIClient) -> int:
     whois_text: Optional[str] = None
     whois_error: Optional[str] = None
 
+    if client is None:
+        client = get_client(getattr(args, "config", None))
+
     # First attempt: WAPI availability endpoint
-    try:
-        api_result = client.domain_availability(args.domain)
-        availability = interpret_api_availability(api_result, args.domain)
-        if availability is not None:
-            availability_source = "wapi"
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.warning(f"WAPI availability lookup failed: {exc}")
+    if client:
+        try:
+            api_result = client.domain_availability(args.domain)
+            availability = interpret_api_availability(api_result, args.domain)
+            if availability is not None:
+                availability_source = "wapi"
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"WAPI availability lookup failed: {exc}")
 
     # WHOIS lookup if registered or undetermined
     if availability is False or availability is None:

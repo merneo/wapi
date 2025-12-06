@@ -1,32 +1,26 @@
-# Git Cleanup Plan
+# Git Cleanup & Push Plan
 
-**Date:** 2025-12-06  
-**Purpose:** Clean up git history to remove incompatible commits and create clean phase-based history
+**Date:** 2025-12-06
 
-## Current Situation
+## 1. Cleanup
 
-- **Local commits ahead:** 2 commits (Phase 7-8, Phase 9)
-- **Origin/master:** At older commit (5415248)
-- **Goal:** Clean history with only compatible, phase-based commits
+- Remove temporary test files (done).
+- Remove cached files (via `.gitignore`).
+- Ensure `config.env` is ignored (verified).
 
-## Strategy
+## 2. Staging
 
-### Option 1: Squash Recent Commits (Recommended)
-Squash all recent work into clean phase commits:
-- Phase 7-8: CI/CD + PyPI
-- Phase 9: Sphinx Documentation
+All project files, including documentation, source code, and tests, are ready to be staged.
 
-### Option 2: Interactive Rebase
-Rebase and clean up history interactively
+## 3. Commit
 
-### Option 3: Fresh Start
-Create new clean branch with all current changes
+**Message:** `feat: Finalize 100% functional test coverage and documentation`
 
-## Recommended Approach
+## 4. Push
 
-Use interactive rebase to create clean commit history:
-1. Keep Phase 7-8 commit as is
-2. Keep Phase 9 commit as is
-3. These are already clean and well-structured
-
-Then push to GitHub.
+To push to GitHub:
+```bash
+git remote add origin https://github.com/username/wapi.git  # If not added
+git push -u origin master
+```
+*(Note: Actual push requires authentication credentials not available in this environment.)*

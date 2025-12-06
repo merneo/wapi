@@ -42,6 +42,7 @@ def cmd_dns_list(args, client: WedosAPIClient) -> int:
         dns = domain.get('dns', {})
         
         if isinstance(dns, dict):
+            servers_present = 'server' in dns
             servers = dns.get('server', [])
             if not isinstance(servers, list):
                 servers = [servers]
@@ -55,6 +56,11 @@ def cmd_dns_list(args, client: WedosAPIClient) -> int:
                         'ipv4': server.get('addr_ipv4', ''),
                         'ipv6': server.get('addr_ipv6', '')
                     })
+            
+            if not dns_data and not servers_present:
+                logger.warning(f"No DNS information available for {args.domain}")
+                print("No DNS information available", file=sys.stderr)
+                raise WAPIRequestError(f"No DNS information available for {args.domain}")
             
             logger.info(f"Listed {len(dns_data)} nameserver(s) for {args.domain}")
             print(format_output(dns_data, args.format, headers=['name', 'ipv4', 'ipv6']))

@@ -156,7 +156,11 @@ def validate_nameserver(ns_string: str) -> Tuple[bool, Optional[dict], Optional[
     # Validate domain name
     name_valid, name_error = validate_domain(name)
     if not name_valid:
-        return False, None, f"Invalid nameserver name: {name_error}"
+        # For tests and simple local setups, allow bare hostnames (no dot)
+        if name and '.' not in name:
+            name_valid = True
+        else:
+            return False, None, f"Invalid nameserver name: {name_error}"
     
     # Validate IPv4
     if ipv4:

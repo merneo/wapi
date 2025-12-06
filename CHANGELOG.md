@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Interactive Shell Stability (2025-12-06)
+- Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.
+- Reset input error counters after successful reads and exit with a non-zero status after consecutive failures to avoid infinite loops in CI and local testing.
+
 ### Added - Domain Search & WHOIS Lookup (2025-12-06)
 - **Search Command** - Domain availability search with WHOIS fallback
   - Created `wapi/commands/search.py` with comprehensive domain search functionality

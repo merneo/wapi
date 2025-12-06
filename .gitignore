@@ -38,8 +38,11 @@ wheels/
 Thumbs.db
 
 # Test files
-test_*.py
-*_test.py
+# test_*.py
+# *_test.py
+
+# test_*.py
+# *_test.py
 
 # Coverage
 .coverage

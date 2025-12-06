@@ -268,7 +268,8 @@ def cmd_search(args, client: Optional[WedosAPIClient] = None) -> int:
     Handle `wapi search` command.
     """
     logger = get_logger("commands.search")
-    logger.info(f"Searching domain availability for: {args.domain}")
+    # Use debug to avoid noisy stdout for normal users; visible with --verbose.
+    logger.debug(f"Searching domain availability for: {args.domain}")
 
     is_valid, error = validate_domain(args.domain)
     if not is_valid:

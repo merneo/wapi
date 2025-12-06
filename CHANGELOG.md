@@ -5,17 +5,18 @@ All notable changes to the WAPI CLI project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-12-06
 
-### Completed - 100% Test Coverage (2025-12-06)
+### Completed - 100% Test Coverage
 - Achieved **100% functional test coverage** across the entire codebase.
 - Implemented comprehensive tests for:
   - Error handling and edge cases in all modules.
   - Asynchronous polling logic with timeouts.
   - Interactive mode and configuration wizard.
   - Security features (credential masking).
-- **Total Tests**: 799 (100% pass rate).
+- **Total Tests**: 822 (100% pass rate).
 - **Code Coverage**: 98% line coverage (remaining 2% unreachable/system errors).
+- Refined `pragma: no cover` placement for more accurate coverage reporting of defensive code.
 
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.

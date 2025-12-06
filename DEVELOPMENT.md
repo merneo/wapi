@@ -1,7 +1,7 @@
 # WAPI CLI Development Guide
 
 **Last Updated:** 2025-01-05  
-**Version:** 0.9.0+
+**Version:** 1.1.0+
 
 ## Development Setup
 

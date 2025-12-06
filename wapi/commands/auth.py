@@ -96,6 +96,15 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
                 print(f"   Credentials appear valid, but API access is restricted from this IP.", file=sys.stderr)
                 print(f"   Credentials will be saved, but you may need to whitelist your IP in WEDOS panel.", file=sys.stderr)
                 # Don't raise exception - continue to save credentials
+            # Check if IP is temporarily blocked (code 2052)
+            elif code_int == 2052 or (isinstance(error_msg, str) and 'temporarily blocked' in error_msg.lower()):
+                logger.warning(f"IP temporarily blocked: {error_msg} (code: {code})")
+                print(f"⚠️  Warning: IP address temporarily blocked due to too many failed requests", file=sys.stderr)
+                print(f"   Error: {error_msg}", file=sys.stderr)
+                print(f"   This usually happens after multiple failed authentication attempts.", file=sys.stderr)
+                print(f"   Please wait a few minutes and try again.", file=sys.stderr)
+                print(f"   Credentials will be saved, but you need to wait before using the API.", file=sys.stderr)
+                # Don't raise exception - continue to save credentials
             else:
                 # Real authentication failure
                 logger.error(f"Authentication failed: {error_msg} (code: {code})")

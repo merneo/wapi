@@ -58,7 +58,17 @@ install_with_venv() {
   source "${venv}/bin/activate"
   log "Upgrading pip and installing from master archive"
   pip install --upgrade pip
-  pip install "${ARCHIVE_URL}"
+  log "Installing wapi from ${REPO_URL}"
+  if ! pip install "${ARCHIVE_URL}"; then
+    err "Installation failed. Trying alternative method..."
+    # Fallback: download and install from source
+    local tmpdir="/tmp/wapi-install-$$"
+    mkdir -p "${tmpdir}"
+    curl -fsSL "${REPO_URL}/archive/refs/heads/master.zip" -o "${tmpdir}/master.zip"
+    unzip -q "${tmpdir}/master.zip" -d "${tmpdir}"
+    pip install "${tmpdir}/wapi-master" || { err "Installation failed"; exit 1; }
+    rm -rf "${tmpdir}"
+  fi
   mkdir -p "${HOME}/.local/bin"
   local shim="${HOME}/.local/bin/wapi"
   cat > "${shim}" <<'EOS'
@@ -66,8 +76,22 @@ install_with_venv() {
 exec "${HOME}/.local/wapi/venv/bin/wapi" "$@"
 EOS
   chmod +x "${shim}"
-  log "Done. Binary: ${shim}"
+  log "Installation complete. Binary: ${shim}"
+  
+  # Verify installation
+  log "Verifying installation..."
+  if "${venv}/bin/wapi" --help >/dev/null 2>&1; then
+    log "✅ wapi is installed and working"
+    log "Run: ${shim} --help"
+  else
+    err "⚠️  Installation may have issues. Try: ${shim} --help"
+  fi
+  
   log "Ensure ~/.local/bin is on your PATH"
+  if [[ ":$PATH:" != *":${HOME}/.local/bin:"* ]]; then
+    log "Add to your ~/.bashrc or ~/.zshrc:"
+    log "  export PATH=\"\${HOME}/.local/bin:\${PATH}\""
+  fi
 }
 
 main() {

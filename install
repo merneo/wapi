@@ -31,9 +31,9 @@ install_with_venv() {
       fi
       log "Attempting to install python3-venv/python3-pip via apt-get"
       ${SUDO} apt-get update -y || true
-      # Try version-specific venv first, then generic
+      # Try version-specific venv first, then generic + python3-full (brings ensurepip)
       pyver="$(python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")' 2>/dev/null || echo 3)"
-      ${SUDO} apt-get install -y "python${pyver}-venv" python3-venv python3-pip || true
+      ${SUDO} apt-get install -y "python${pyver}-venv" python3-venv python3-pip python3-full || true
       ${SUDO} apt-get install -y pipx || true
     else
       err "Missing ensurepip/venv. Install python3-venv (or pipx) and rerun."
@@ -46,7 +46,13 @@ install_with_venv() {
     err "venv creation failed (likely missing python3-venv/ensurepip)"
     ensure_venv_prereqs
     log "Retrying venv creation"
-    python3 -m venv "${venv}" || { err "venv creation still failing. Install python3-venv manually."; exit 1; }
+    if ! python3 -m venv "${venv}"; then
+      log "Retrying venv --without-pip and bootstrapping pip"
+      python3 -m venv --without-pip "${venv}" || { err "venv creation still failing. Install python3-venv manually."; exit 1; }
+      curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+      "${venv}/bin/python" /tmp/get-pip.py
+      rm -f /tmp/get-pip.py
+    fi
   fi
   # shellcheck disable=SC1090
   source "${venv}/bin/activate"

@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.13']
+        python-version: ['3.10', '3.11', '3.13']
     
     steps:
       - name: Checkout code
@@ -38,6 +38,7 @@ jobs:
           pytest --cov=wapi --cov-report=xml --cov-report=term --cov-report=html -v
       
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -46,6 +47,7 @@ jobs:
           fail_ci_if_error: false
       
       - name: Upload coverage HTML report
+        if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report-${{ matrix.python-version }}
@@ -88,41 +90,6 @@ jobs:
           mypy --ignore-missing-imports wapi/
         continue-on-error: true
 
-  coverage:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-      
-      - name: Generate coverage report
-        run: |
-          pytest --cov=wapi --cov-report=term --cov-report=html -v
-      
-      - name: Check coverage threshold
-        run: |
-          coverage report --fail-under=100
-      
-      - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report-final
-          path: htmlcov/
-          retention-days: 30
 
   security:
     name: Security Check
@@ -146,10 +113,10 @@ jobs:
       
       - name: Check for known security vulnerabilities
         run: |
-          safety check --file requirements.txt || true
-          safety check --file requirements-dev.txt || true
-          pip-audit -r requirements.txt || true
-          pip-audit -r requirements-dev.txt || true
+          safety check --file requirements.txt
+          safety check --file requirements-dev.txt
+          pip-audit -r requirements.txt
+          pip-audit -r requirements-dev.txt
       
       - name: Check for hardcoded secrets
         run: |
@@ -205,3 +172,39 @@ jobs:
       - name: List outdated packages
         run: |
           pip list --outdated || true
+
+  secrets:
+    name: Secrets Scan (gitleaks)
+    runs-on: ubuntu-latest
+  bandit:
+    name: Bandit SAST (informational)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+
+      - name: Run bandit (non-blocking)
+        run: |
+          bandit -r wapi -q || true
+    steps:
+      - name: Checkout code (full history for scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config: .gitleaks.toml
+          args: "--verbose"

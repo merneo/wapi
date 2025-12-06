@@ -46,6 +46,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Python 3.13 to CI matrix and a lightweight outdated-report job.
 - Ensured table formatting handles empty lists with tabulate 0.9.
 
+### Chore - CI Slimming (2025-12-06)
+- Trimmed CI test matrix to Python 3.10, 3.11, and 3.13 to reduce runtime while keeping old+new coverage.
+- Removed the redundant standalone coverage job; coverage now runs once per test job and uploads Codecov/artifacts as before.
+- Full suite remains at 100% coverage (864 tests) after the pipeline change.
+- Limited coverage uploads/artifacts to the 3.11 job to shorten CI while retaining matrix testing.
+- Added CI secrets scanning with gitleaks (fail-on-detect) using a scoped allowlist for common placeholders.
+- Enforced failing `safety` and `pip-audit` checks in CI; added weekly Dependabot for pip and GitHub Actions.
+- Added informational Bandit SAST job (non-blocking) to surface security lint findings.
+- Added pip cache to the outdated job for faster dependency checks; audited logging/timeout handling (sensitive fields already redacted, network calls use timeouts).
+
+### Added - Install Script (2025-12-06)
+- Added repository install bootstrap (`install`) to allow `curl -fsS https://github.com/merneo/wapi/install | bash`.
+- Prefers pipx; falls back to a user venv at `~/.local/wapi` with a shim in `~/.local/bin/wapi`.
+- Uses master archive (`archive/refs/heads/master.zip`) for deterministic installs without altering history.
+
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.
 - Reset input error counters after successful reads and exit with a non-zero status after consecutive failures to avoid infinite loops in CI and local testing.

@@ -66,6 +66,12 @@ Our comprehensive wiki documentation (948+ lines) covers everything you need to 
 
 ## 🚀 Quick Start Guide
 
+### One-line install (recommended)
+```bash
+curl -fsS https://raw.githubusercontent.com/merneo/wapi/master/install | bash
+```
+> Uses pipx when available; otherwise creates a user venv at `~/.local/wapi` with a shim `~/.local/bin/wapi`. Ensure `~/.local/bin` is on your PATH.
+
 Get started with WEDOS WAPI in Python in just a few steps:
 
 ### Step 1: Create a Virtual Environment (recommended)

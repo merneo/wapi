@@ -1,0 +1,13 @@
+title = "WAPI gitleaks configuration"
+
+[allowlist]
+description = "Allow common placeholders used in tests/docs"
+regexes = [
+  "(?i)example\\.com",
+  "(?i)example\\.invalid",
+  "(?i)example@",
+  "(?i)dummy",
+  "(?i)placeholder",
+  "(?i)sample",
+  "(?i)localhost"
+]

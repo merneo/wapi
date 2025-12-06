@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_URL="https://github.com/merneo/wapi"
+ARCHIVE_URL="${REPO_URL}/archive/refs/heads/master.zip"
+
+log() { printf '==> %s\n' "$*"; }
+err() { printf '!! %s\n' "$*" >&2; }
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || { err "Missing dependency: $1"; exit 1; }
+}
+
+install_with_pipx() {
+  log "Installing via pipx from master archive"
+  pipx install --force "wapi @ ${ARCHIVE_URL}"
+  log "Done. Binary: $(pipx list | awk '/package wapi/ {print $3}')"
+}
+
+install_with_venv() {
+  need "python3"
+  local root="${HOME}/.local/wapi"
+  local venv="${root}/venv"
+  mkdir -p "${root}"
+  log "Creating venv at ${venv}"
+  python3 -m venv "${venv}"
+  # shellcheck disable=SC1090
+  source "${venv}/bin/activate"
+  log "Upgrading pip and installing from master archive"
+  pip install --upgrade pip
+  pip install "wapi @ ${ARCHIVE_URL}"
+  mkdir -p "${HOME}/.local/bin"
+  local shim="${HOME}/.local/bin/wapi"
+  cat > "${shim}" <<'EOS'
+#!/usr/bin/env bash
+exec "${HOME}/.local/wapi/venv/bin/wapi" "$@"
+EOS
+  chmod +x "${shim}"
+  log "Done. Binary: ${shim}"
+  log "Ensure ~/.local/bin is on your PATH"
+}
+
+main() {
+  need "curl"
+  need "unzip"
+  if command -v pipx >/dev/null 2>&1; then
+    install_with_pipx
+  else
+    install_with_venv
+  fi
+}
+
+main "$@"

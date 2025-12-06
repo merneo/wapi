@@ -7,15 +7,12 @@ Supports both XML and JSON formats.
 
 import hashlib
 import json
-import socket
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.connection import create_connection
 
 from .auth import calculate_auth
 from ..constants import DEFAULT_MAX_POLL_ATTEMPTS, DEFAULT_POLL_INTERVAL
@@ -27,73 +24,10 @@ from ..exceptions import (
 from ..utils.logger import get_logger
 
 
-class IPv4HTTPAdapter(HTTPAdapter):
-    """HTTP adapter that forces IPv4 connections"""
-    def init_poolmanager(self, *args, **kwargs):
-        # Force IPv4 by monkey-patching urllib3's create_connection
-        import urllib3.util.connection as urllib3_connection
-        
-        # Save original function
-        if not hasattr(urllib3_connection, '_original_create_connection'):
-            urllib3_connection._original_create_connection = urllib3_connection.create_connection
-        
-        def patched_create_connection(address, *args, **kwargs):
-            """Force IPv4 by resolving to IPv4 address first and binding to IPv4 source"""
-            host, port = address
-            import logging
-            logger = logging.getLogger('wapi.api.client')
-            
-            # Always resolve to IPv4 only
-            try:
-                addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-                if addrinfo:
-                    ipv4_address = addrinfo[0][4][0]
-                    address = (ipv4_address, port)
-                    logger.info(f"IPv4-only mode: Resolved {host} to IPv4 {ipv4_address}:{port}")
-                else:
-                    logger.warning(f"IPv4-only mode: No IPv4 address found for {host}")
-            except (socket.gaierror, OSError, TypeError) as e:
-                logger.warning(f"IPv4-only mode: Could not resolve {host} to IPv4: {e}")
-            
-            # Try to get IPv4 source address and bind to it
-            try:
-                # Get all IPv4 addresses from all interfaces
-                import subprocess
-                result = subprocess.run(['ip', '-4', 'addr', 'show'], capture_output=True, text=True, timeout=2)
-                if result.returncode == 0:
-                    for line in result.stdout.split('\n'):
-                        if 'inet ' in line and '127.0.0.1' not in line:
-                            # Extract IP address
-                            parts = line.strip().split()
-                            if len(parts) >= 2 and parts[0] == 'inet':
-                                local_ip = parts[1].split('/')[0]
-                                if not local_ip.startswith('127.'):
-                                    # Create socket with IPv4 source binding
-                                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                    try:
-                                        sock.bind((local_ip, 0))  # Bind to IPv4 source address
-                                        sock.settimeout(kwargs.get('timeout', 30))
-                                        sock.connect(address)
-                                        logger.info(f"IPv4-only mode: Connected via IPv4 source {local_ip} to {address[0]}:{address[1]}")
-                                        return sock
-                                    except (OSError, socket.error) as e:
-                                        sock.close()
-                                        logger.debug(f"IPv4-only mode: Failed to bind to {local_ip}: {e}")
-                                        continue
-            except Exception as e:
-                logger.debug(f"IPv4-only mode: Could not bind to IPv4 source: {e}")
-            
-            # Fall back to original method (but still with IPv4 address)
-            return urllib3_connection._original_create_connection(address, *args, **kwargs)
-        
-        urllib3_connection.create_connection = patched_create_connection
-        return super().init_poolmanager(*args, **kwargs)
-
-
 class WedosAPIClient:
     """WEDOS WAPI client supporting XML and JSON formats"""
     
-    def __init__(self, username: str, password: str, base_url: str = "https://api.wedos.com/wapi", use_json: bool = False, force_ipv4: bool = False):
+    def __init__(self, username: str, password: str, base_url: str = "https://api.wedos.com/wapi", use_json: bool = False):
         """
         Initialize WEDOS API client
         
@@ -102,39 +36,14 @@ class WedosAPIClient:
             password: WAPI password
             base_url: Base URL for API (default: https://api.wedos.com/wapi)
             use_json: Use JSON format instead of XML (default: False)
-            force_ipv4: Force IPv4 connections (useful when IPv6 is not whitelisted) (default: False)
         """
         self.username = username
         self.password = password
         self.use_json = use_json
-        self.force_ipv4 = force_ipv4
         self.base_url = f"{base_url}/json" if use_json else f"{base_url}/xml"
         self.logger = get_logger('api.client')
         
-        # Create session with IPv4 adapter if needed
-        self.session = requests.Session()
-        if force_ipv4:
-            adapter = IPv4HTTPAdapter()
-            self.session.mount('https://', adapter)
-            self.session.mount('http://', adapter)
-            self.logger.info("IPv4-only mode enabled - all connections will use IPv4")
-            # Also disable IPv6 at socket level
-            import socket
-            # Save original getaddrinfo
-            if not hasattr(socket, '_original_getaddrinfo'):
-                socket._original_getaddrinfo = socket.getaddrinfo
-            # Override getaddrinfo to prefer IPv4
-            def ipv4_preferred_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-                if family == 0:  # AF_UNSPEC - force IPv4
-                    try:
-                        return socket._original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
-                    except (socket.gaierror, OSError):
-                        # If IPv4 fails, try original
-                        return socket._original_getaddrinfo(host, port, family, type, proto, flags)
-                return socket._original_getaddrinfo(host, port, family, type, proto, flags)
-            socket.getaddrinfo = ipv4_preferred_getaddrinfo
-        
-        self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'}, IPv4-only: {force_ipv4})")
+        self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'})")
     
     def _calculate_auth(self) -> str:
         """Calculate authentication hash based on current hour in Europe/Prague timezone"""
@@ -258,7 +167,7 @@ class WedosAPIClient:
             request_body = self._build_json_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             try:
-                response = self.session.post(
+                response = requests.post(
                     self.base_url,
                     data={"request": request_body},
                     headers=headers,
@@ -287,7 +196,7 @@ class WedosAPIClient:
             request_body = self._build_xml_request(command, data)
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             try:
-                response = self.session.post(
+                response = requests.post(
                     self.base_url,
                     data={"request": request_body},
                     headers=headers,

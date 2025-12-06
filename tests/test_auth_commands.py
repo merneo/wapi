@@ -274,14 +274,9 @@ class TestAuthLoginCommand(unittest.TestCase):
             result = cmd_auth_login(self.mock_args, None)
             
             self.assertEqual(result, EXIT_SUCCESS)
-            # force_ipv4 may be None or False depending on config
-            call_args = mock_client_class.call_args
-            self.assertEqual(call_args[0][0], 'test@example.com')
-            self.assertEqual(call_args[0][1], 'testpass123')
-            self.assertEqual(call_args[1]['use_json'], False)
-            # force_ipv4 should be present (may be None or False)
-            self.assertIn('force_ipv4', call_args[1])
+            mock_client_class.assert_called_once_with('test@example.com', 'testpass123', use_json=False)
         finally:
+            # Cleanup
             import os
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)

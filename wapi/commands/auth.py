@@ -72,13 +72,8 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
     connection_test_passed = False
     ip_whitelist_issue = False
     
-    # Check if IPv4-only mode is requested
-    from ..config import get_config
-    force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=str(config_file))
-    force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
-    
     try:
-        test_client = WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
+        test_client = WedosAPIClient(username, password, use_json=False)
         result = test_client.ping()
         response = result.get('response', {})
         code = response.get('code')
@@ -95,15 +90,6 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
                 print(f"   Error: {error_msg}", file=sys.stderr)
                 print(f"   Credentials appear valid, but API access is restricted from this IP.", file=sys.stderr)
                 print(f"   Credentials will be saved, but you may need to whitelist your IP in WEDOS panel.", file=sys.stderr)
-                # Don't raise exception - continue to save credentials
-            # Check if IP is temporarily blocked (code 2052)
-            elif code_int == 2052 or (isinstance(error_msg, str) and 'temporarily blocked' in error_msg.lower()):
-                logger.warning(f"IP temporarily blocked: {error_msg} (code: {code})")
-                print(f"⚠️  Warning: IP address temporarily blocked due to too many failed requests", file=sys.stderr)
-                print(f"   Error: {error_msg}", file=sys.stderr)
-                print(f"   This usually happens after multiple failed authentication attempts.", file=sys.stderr)
-                print(f"   Please wait a few minutes and try again.", file=sys.stderr)
-                print(f"   Credentials will be saved, but you need to wait before using the API.", file=sys.stderr)
                 # Don't raise exception - continue to save credentials
             else:
                 # Real authentication failure
@@ -256,10 +242,7 @@ def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
     # Test connection
     logger.debug("Testing connection with configured credentials")
     try:
-        # Check if IPv4-only mode is requested
-        force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=args.config)
-        force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
-        test_client = client or WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
+        test_client = client or WedosAPIClient(username, password, use_json=False)
         result = test_client.ping()
         response = result.get('response', {})
         code = response.get('code')
@@ -297,9 +280,6 @@ def get_client(config_file: Optional[str] = None) -> Optional[WedosAPIClient]:
     if not (username and password):
         return None
     try:
-        # Check if IPv4-only mode is requested
-        force_ipv4_str = get_config('WAPI_FORCE_IPV4', config_file=str(config_file))
-        force_ipv4 = force_ipv4_str and force_ipv4_str.lower() in ('true', '1', 'yes', 'on')
-        return WedosAPIClient(username, password, use_json=False, force_ipv4=force_ipv4)
+        return WedosAPIClient(username, password, use_json=False)
     except Exception:
         return None

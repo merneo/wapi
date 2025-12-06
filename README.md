@@ -70,7 +70,7 @@ Our comprehensive wiki documentation (948+ lines) covers everything you need to 
 ```bash
 curl -fsS https://raw.githubusercontent.com/merneo/wapi/master/install | bash
 ```
-> Uses pipx when available; otherwise creates a user venv at `~/.local/wapi` with a shim `~/.local/bin/wapi`. Ensure `~/.local/bin` is on your PATH.
+> Uses pipx when available; otherwise creates a user venv at `~/.local/wapi` with a shim `~/.local/bin/wapi`. On Debian/Ubuntu it will try to install `python3-venv` automatically if missing. Ensure `~/.local/bin` is on your PATH.
 
 Get started with WEDOS WAPI in Python in just a few steps:
 

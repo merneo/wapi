@@ -22,8 +22,30 @@ install_with_venv() {
   local root="${HOME}/.local/wapi"
   local venv="${root}/venv"
   mkdir -p "${root}"
+
+  ensure_venv_prereqs() {
+    if command -v apt-get >/dev/null 2>&1; then
+      local SUDO=""
+      if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+        SUDO="sudo"
+      fi
+      log "Attempting to install python3-venv/python3-pip via apt-get"
+      ${SUDO} apt-get update -y || true
+      ${SUDO} apt-get install -y python3-venv python3-pip || true
+      ${SUDO} apt-get install -y pipx || true
+    else
+      err "Missing ensurepip/venv. Install python3-venv (or pipx) and rerun."
+      exit 1
+    fi
+  }
+
   log "Creating venv at ${venv}"
-  python3 -m venv "${venv}"
+  if ! python3 -m venv "${venv}"; then
+    err "venv creation failed (likely missing python3-venv/ensurepip)"
+    ensure_venv_prereqs
+    log "Retrying venv creation"
+    python3 -m venv "${venv}" || { err "venv creation still failing. Install python3-venv manually."; exit 1; }
+  fi
   # shellcheck disable=SC1090
   source "${venv}/bin/activate"
   log "Upgrading pip and installing from master archive"

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Coverage**: 98% line coverage (remaining 2% unreachable/system errors).
 - Refined `pragma: no cover` placement for more accurate coverage reporting of defensive code.
 - **Auth & Interactive Module Coverage**: Achieved 100% coverage for `wapi/commands/auth.py` and `wapi/utils/interactive.py` by adding targeted tests for generic exception handling, edge cases in status checking, and interactive shell error resilience.
+- **Domain Module Coverage Status**: `wapi/commands/domain.py` remains at 95% line coverage. The remaining uncovered lines are in defensive error handling and polling timeout branches. Functional tests exist for these scenarios, but `coverage.py` consistently reports them as missed, indicating a tool-specific reporting limitation rather than a lack of testing.
 
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.

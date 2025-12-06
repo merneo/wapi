@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored `wapi/utils/validators.py` to **100% coverage** by exercising empty input, invalid formats, missing dot, and bare-hostname allowances.
 - Full test suite now at **100% overall coverage** with 864 passing tests.
 
+### Chore - Tooling & Dependencies (2025-12-06)
+- Pinned test/docs tools to validated versions: pytest 9.0.1, pytest-cov 7.0.0, Sphinx 7.3.7; pinned urllib3 2.6.0 for deterministic installs.
+- Added venv setup guidance (PEP 668-friendly) to README and DEVELOPMENT guides.
+- Added Python 3.13 to CI matrix and a lightweight outdated-report job.
+- Ensured table formatting handles empty lists with tabulate 0.9.
+
 ### Fixed - Interactive Shell Stability (2025-12-06)
 - Added safeguards in `wapi/utils/interactive.py` to stop the REPL when input streams are exhausted or repeatedly fail, preventing hangs around 68% progress during test runs.
 - Reset input error counters after successful reads and exit with a non-zero status after consecutive failures to avoid infinite loops in CI and local testing.

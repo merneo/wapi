@@ -306,6 +306,17 @@ def cmd_search(args, client: Optional[WedosAPIClient] = None) -> int:
                         availability = interpret_api_availability(api_result_json, args.domain)
                         if availability is not None:
                             availability_source = "wapi"
+                        else:
+                            # Fall back to domain-info heuristic: 1000 => registered, 2303 => available
+                            info_result = client.domain_info(args.domain)
+                            info_resp = info_result.get("response", {}) if isinstance(info_result, dict) else {}
+                            info_code = str(info_resp.get("code"))
+                            if info_code == "1000":
+                                availability = False
+                                availability_source = "wapi"
+                            elif info_code == "2303":  # object does not exist
+                                availability = True
+                                availability_source = "wapi"
                     except Exception as json_exc:  # pragma: no cover - best-effort fallback
                         logger.warning(f"JSON availability fallback failed: {json_exc}")
         except Exception as exc:

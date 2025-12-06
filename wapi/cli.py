@@ -28,6 +28,9 @@ from .exceptions import (
 )
 from .utils.formatters import format_output
 from .utils.logger import get_logger, setup_logging
+from .utils.aliases import expand_alias, list_aliases
+from .utils.interactive import start_interactive_mode
+from .utils.config_wizard import run_config_wizard
 
 
 def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
@@ -118,6 +121,12 @@ def main():
     parser.add_argument('--log-file', help='Log file path (optional)')
     parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                        help='Log level (overrides --verbose/--quiet)')
+    parser.add_argument('--interactive', '-i', action='store_true',
+                       help='Start interactive mode (REPL)')
+    parser.add_argument('--aliases', action='store_true',
+                       help='Show available command aliases')
+    parser.add_argument('--wizard', action='store_true',
+                       help='Run configuration wizard for first-time setup')
     
     # Subcommands
     subparsers = parser.add_subparsers(dest='module', help='Module')
@@ -276,6 +285,28 @@ def main():
     
     logger.debug("WAPI CLI started")
     logger.debug(f"Arguments: {vars(args)}")
+    
+    # Handle wizard option
+    if args.wizard:
+        success = run_config_wizard(args.config)
+        return EXIT_SUCCESS if success else EXIT_CONFIG_ERROR
+    
+    # Handle aliases option
+    if args.aliases:
+        print(list_aliases())
+        return EXIT_SUCCESS
+    
+    # Handle interactive mode
+    if args.interactive:
+        try:
+            client = get_client(args.config)
+            if not client:
+                return EXIT_CONFIG_ERROR
+            return start_interactive_mode(client)
+        except WAPIConfigurationError as e:
+            logger.error(f"Configuration error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_CONFIG_ERROR
     
     # Handle no command
     if not args.module:

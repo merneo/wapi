@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Phase 10: Advanced Features & Enhancements (2025-12-06)
+- **Interactive Mode (REPL)** - Interactive shell for running WAPI commands
+  - Created `wapi/utils/interactive.py` with WAPIInteractiveShell class
+  - Command history tracking
+  - Built-in help system
+  - Support for all WAPI commands
+  - Clean exit handling
+  - Usage: `wapi --interactive` or `wapi -i`
+- **Command Aliases** - Short aliases for common commands
+  - Created `wapi/utils/aliases.py` with alias definitions
+  - 16+ aliases for common commands (dl, di, dr, da, dd, ni, nc, etc.)
+  - Alias expansion functionality
+  - Usage: `wapi --aliases` to list all aliases
+- **Batch Operations** - Process multiple domains/records at once
+  - Created `wapi/utils/batch.py` with batch operation utilities
+  - Batch domain operations
+  - Batch DNS record operations
+  - Read domains from file
+  - Write results to file (JSON, YAML, CSV)
+  - Progress tracking and error handling
+- **Configuration Wizard** - Interactive first-time setup
+  - Created `wapi/utils/config_wizard.py` with wizard implementation
+  - Step-by-step interactive setup
+  - Secure password input
+  - Configuration validation
+  - File permission setting (600)
+  - Usage: `wapi --wizard`
+- **CLI Enhancements:**
+  - Added `--interactive` / `-i` global option
+  - Added `--aliases` global option
+  - Added `--wizard` global option
+  - Integrated all new features into main CLI
+- **Documentation:**
+  - `PHASE10_ADVANCED_FEATURES.md` - Comprehensive Phase 10 documentation
+  - Updated `wapi/utils/__init__.py` with new exports
+
 ### Added - Phase 9: API Documentation Enhancement (Sphinx) (2025-12-06)
 - **Sphinx Documentation** - Comprehensive API documentation using Sphinx
   - Complete Sphinx setup and configuration

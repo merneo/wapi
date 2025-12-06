@@ -227,6 +227,49 @@ class TestAuthComplete(unittest.TestCase):
     @patch('wapi.commands.auth.input')
     @patch('wapi.commands.auth.get_logger')
     @patch('wapi.commands.auth.WedosAPIClient')
+    def test_cmd_auth_login_generic_exception(self, mock_client_class, mock_get_logger, 
+                                              mock_input, mock_getpass, mock_validate, mock_path, mock_chmod):
+        """Test login with generic exception (lines 111-115) - should save credentials"""
+        import tempfile
+        from pathlib import Path as PathLib
+        
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_validate.return_value = (True, None)
+        mock_getpass.return_value = 'testpass123'
+        
+        self.mock_args.username = 'test@example.com'
+        self.mock_args.password = 'testpass123'
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.env') as tmp:
+            tmp_path = tmp.name
+        
+        self.mock_args.config = tmp_path
+        
+        try:
+            mock_path.return_value = PathLib(tmp_path)
+            
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+            # Mock generic exception (not WAPIConnectionError or WAPIRequestError)
+            mock_client.ping.side_effect = ValueError("Unexpected error")
+            
+            # Generic exceptions should not raise - credentials are saved
+            result = cmd_auth_login(self.mock_args, None)
+            self.assertEqual(result, EXIT_SUCCESS)
+            # Verify credentials were saved
+            self.assertTrue(os.path.exists(tmp_path))
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    @patch('wapi.commands.auth.os.chmod')
+    @patch('wapi.commands.auth.Path')
+    @patch('wapi.api.auth.validate_credentials')
+    @patch('wapi.commands.auth.getpass')
+    @patch('wapi.commands.auth.input')
+    @patch('wapi.commands.auth.get_logger')
+    @patch('wapi.commands.auth.WedosAPIClient')
     @patch('builtins.open', new_callable=mock_open, read_data='# Comment\nWAPI_BASE_URL=https://api.wedos.com\n\nKEY=value\n')
     def test_cmd_auth_login_config_with_comments(self, mock_file, mock_client_class, mock_get_logger, 
                                                   mock_input, mock_getpass, mock_validate, mock_path, mock_chmod):

@@ -68,14 +68,27 @@ Our comprehensive wiki documentation (948+ lines) covers everything you need to 
 
 Get started with WEDOS WAPI in Python in just a few steps:
 
-### Step 1: Install the Package
+### Step 1: Create a Virtual Environment (recommended)
+PEP 668-friendly install:
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+```
+
+If you only need runtime deps:
+```bash
+pip install -r requirements.txt
+```
+
+### Step 2: Install the Package
 ```bash
 git clone https://github.com/merneo/wapi.git
 cd wapi
 pip install -e .
 ```
 
-### Step 2: Configure Your Credentials
+### Step 3: Configure Your Credentials
 Copy the example configuration file and add your WEDOS WAPI credentials:
 ```bash
 cp config.env.example config.env
@@ -83,12 +96,12 @@ cp config.env.example config.env
 chmod 600 config.env  # Secure the file
 ```
 
-### Step 3: Test Your Connection
+### Step 4: Test Your Connection
 ```bash
 wapi auth ping
 ```
 
-### Step 4: Start Using the CLI
+### Step 5: Start Using the CLI
 ```bash
 # List your domains
 wapi domain list

@@ -48,13 +48,15 @@ def format_table(data: Any, headers: List[str] = None) -> str:
         return str(data)
     
     if isinstance(data, list):
+        if not data:
+            return ""
         if data and isinstance(data[0], dict):
             if not headers:
                 headers = list(data[0].keys())
             rows = [[row.get(h, '') for h in headers] for row in data]
             return tabulate(rows, headers=headers, tablefmt="grid")
         else:
-            return tabulate(data, headers=headers, tablefmt="grid")
+            return tabulate(data, headers=headers or [], tablefmt="grid")
     elif isinstance(data, dict):
         rows = [[k, v] for k, v in data.items()]
         return tabulate(rows, headers=["Key", "Value"], tablefmt="grid")

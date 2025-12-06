@@ -11,17 +11,18 @@
 - pip (Python package manager)
 - git
 
-### Installation
+### Installation (PEP 668-friendly)
 
 ```bash
 # Clone repository
 git clone https://github.com/merneo/wapi.git
 cd wapi
 
-# Install production dependencies
-pip install -r requirements.txt
+# Create & activate virtual env
+python -m venv .venv
+source .venv/bin/activate
 
-# Install development dependencies
+# Install dependencies
 pip install -r requirements-dev.txt
 
 # Install pre-commit hooks

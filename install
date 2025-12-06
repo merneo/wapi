@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_URL="https://github.com/merneo/wapi"
 ARCHIVE_URL="${REPO_URL}/archive/refs/heads/master.zip"
+PACKAGE_NAME="wapi-cli"
 
 log() { printf '==> %s\n' "$*"; }
 err() { printf '!! %s\n' "$*" >&2; }
@@ -13,8 +14,8 @@ need() {
 
 install_with_pipx() {
   log "Installing via pipx from master archive"
-  pipx install --force "wapi @ ${ARCHIVE_URL}"
-  log "Done. Binary: $(pipx list | awk '/package wapi/ {print $3}')"
+  pipx install --force "${PACKAGE_NAME} @ ${ARCHIVE_URL}"
+  log "Done. Binary: $(pipx list | awk '/package wapi-cli/ {print $3}')"
 }
 
 install_with_venv() {
@@ -58,7 +59,7 @@ install_with_venv() {
   source "${venv}/bin/activate"
   log "Upgrading pip and installing from master archive"
   pip install --upgrade pip
-  pip install "wapi @ ${ARCHIVE_URL}"
+  pip install "${PACKAGE_NAME} @ ${ARCHIVE_URL}"
   mkdir -p "${HOME}/.local/bin"
   local shim="${HOME}/.local/bin/wapi"
   cat > "${shim}" <<'EOS'

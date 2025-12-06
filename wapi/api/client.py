@@ -57,25 +57,29 @@ class IPv4HTTPAdapter(HTTPAdapter):
             
             # Try to get IPv4 source address and bind to it
             try:
-                # Get local IPv4 addresses
-                local_addrinfo = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM)
-                if local_addrinfo:
-                    # Use first non-loopback IPv4 address as source
-                    for addr in local_addrinfo:
-                        local_ip = addr[4][0]
-                        if not local_ip.startswith('127.'):
-                            # Create socket with IPv4 source binding
-                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            try:
-                                sock.bind((local_ip, 0))  # Bind to IPv4 source address
-                                sock.settimeout(kwargs.get('timeout', 30))
-                                sock.connect(address)
-                                logger.info(f"IPv4-only mode: Connected via IPv4 source {local_ip}")
-                                return sock
-                            except (OSError, socket.error) as e:
-                                sock.close()
-                                logger.debug(f"IPv4-only mode: Failed to bind to {local_ip}: {e}")
-                                continue
+                # Get all IPv4 addresses from all interfaces
+                import subprocess
+                result = subprocess.run(['ip', '-4', 'addr', 'show'], capture_output=True, text=True, timeout=2)
+                if result.returncode == 0:
+                    for line in result.stdout.split('\n'):
+                        if 'inet ' in line and '127.0.0.1' not in line:
+                            # Extract IP address
+                            parts = line.strip().split()
+                            if len(parts) >= 2 and parts[0] == 'inet':
+                                local_ip = parts[1].split('/')[0]
+                                if not local_ip.startswith('127.'):
+                                    # Create socket with IPv4 source binding
+                                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                    try:
+                                        sock.bind((local_ip, 0))  # Bind to IPv4 source address
+                                        sock.settimeout(kwargs.get('timeout', 30))
+                                        sock.connect(address)
+                                        logger.info(f"IPv4-only mode: Connected via IPv4 source {local_ip} to {address[0]}:{address[1]}")
+                                        return sock
+                                    except (OSError, socket.error) as e:
+                                        sock.close()
+                                        logger.debug(f"IPv4-only mode: Failed to bind to {local_ip}: {e}")
+                                        continue
             except Exception as e:
                 logger.debug(f"IPv4-only mode: Could not bind to IPv4 source: {e}")
             

@@ -150,9 +150,9 @@ def log_api_response(logger: logging.Logger, command: str, code: int, result: st
     elif code == 1001 or code == '1001':
         logger.info(f"API Response: {command} - Async operation started (code: {code})")
     elif command == "domains-availability" and str(code) in {"2010", "2051", "2052"}:
-        # These are common/expected for availability on some accounts (unknown command / IP whitelist issues).
-        # Treat them as info to avoid noisy warnings; the caller can fall back to WHOIS.
-        logger.info(f"API Response: {command} - Info (code: {code}): {result}")
+        # Common/expected for some accounts (unknown command / IP whitelist issues).
+        # Log as debug to avoid noisy console output; caller falls back to WHOIS.
+        logger.debug(f"API Response: {command} - Info (code: {code}): {result}")
     elif code and str(code).startswith('2'):
         logger.warning(f"API Response: {command} - Error (code: {code}): {result}")
     else:

@@ -10,7 +10,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Check WIKI.md exists
         run: test -f WIKI.md || exit 1
       - name: Check README.md exists

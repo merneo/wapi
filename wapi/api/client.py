@@ -40,37 +40,22 @@ class IPv4HTTPAdapter(HTTPAdapter):
         def patched_create_connection(address, *args, **kwargs):
             """Force IPv4 by resolving to IPv4 address first"""
             host, port = address
-            # If address is already an IP, check if it's IPv6 and resolve to IPv4
-            if isinstance(host, str):
-                # Check if it's an IPv6 address
-                if ':' in host and not host.startswith('['):
-                    # Try to resolve hostname to IPv4
-                    try:
-                        addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-                        if addrinfo:
-                            ipv4_address = addrinfo[0][4][0]
-                            address = (ipv4_address, port)
-                            import logging
-                            logger = logging.getLogger('wapi.api.client')
-                            logger.info(f"IPv4-only mode: Resolved {host} to IPv4 {ipv4_address}")
-                    except (socket.gaierror, OSError, TypeError) as e:
-                        import logging
-                        logger = logging.getLogger('wapi.api.client')
-                        logger.warning(f"IPv4-only mode: Could not resolve {host} to IPv4: {e}")
+            import logging
+            logger = logging.getLogger('wapi.api.client')
+            
+            # Always resolve to IPv4 only
+            try:
+                addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+                if addrinfo:
+                    ipv4_address = addrinfo[0][4][0]
+                    address = (ipv4_address, port)
+                    logger.info(f"IPv4-only mode: Resolved {host} to IPv4 {ipv4_address}:{port}")
                 else:
-                    # Resolve hostname to IPv4 only
-                    try:
-                        addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-                        if addrinfo:
-                            ipv4_address = addrinfo[0][4][0]
-                            address = (ipv4_address, port)
-                            import logging
-                            logger = logging.getLogger('wapi.api.client')
-                            logger.debug(f"IPv4-only mode: Resolved {host} to IPv4 {ipv4_address}")
-                    except (socket.gaierror, OSError, TypeError) as e:
-                        import logging
-                        logger = logging.getLogger('wapi.api.client')
-                        logger.warning(f"IPv4-only mode: Could not resolve {host} to IPv4: {e}")
+                    logger.warning(f"IPv4-only mode: No IPv4 address found for {host}")
+            except (socket.gaierror, OSError, TypeError) as e:
+                logger.warning(f"IPv4-only mode: Could not resolve {host} to IPv4: {e}")
+            
+            # Use original create_connection but with IPv4 address
             return urllib3_connection._original_create_connection(address, *args, **kwargs)
         
         urllib3_connection.create_connection = patched_create_connection
@@ -101,9 +86,10 @@ class WedosAPIClient:
         # Create session with IPv4 adapter if needed
         self.session = requests.Session()
         if force_ipv4:
-            self.session.mount('https://', IPv4HTTPAdapter())
-            self.session.mount('http://', IPv4HTTPAdapter())
-            self.logger.debug("IPv4-only mode enabled")
+            adapter = IPv4HTTPAdapter()
+            self.session.mount('https://', adapter)
+            self.session.mount('http://', adapter)
+            self.logger.info("IPv4-only mode enabled - all connections will use IPv4")
         
         self.logger.debug(f"Initialized WedosAPIClient (format: {'JSON' if use_json else 'XML'}, IPv4-only: {force_ipv4})")
     

@@ -1064,6 +1064,64 @@ result = api.domain_update_ns('example.com', nameservers=nameservers)
 # Creates NSSET with name like: NS-EXAMPLE-COM-1764957371
 ```
 
+### Error: "NSSET is not supported" (Code 3242)
+
+**Cause:** NSSET operations are not supported for certain TLDs, particularly `.com` domains.
+
+**Important:** For `.com` domains (and some other TLDs), WEDOS WAPI does **not support NSSET operations**. Nameservers must be managed directly through the domain's DNS configuration, not via NSSET.
+
+**Solution for .com domains:**
+
+1. **Use `domain_update_ns` method** - This works for .com domains even though NSSET is not supported:
+```python
+# For .com domains, use domain_update_ns (works without NSSET)
+nameservers = [
+    {
+        "name": "ns1.example.com",
+        "addr_ipv4": "192.0.2.1",
+        "addr_ipv6": "2001:db8::1"
+    },
+    {
+        "name": "ns2.example.com",
+        "addr_ipv4": "192.0.2.2",
+        "addr_ipv6": "2001:db8::2"
+    }
+]
+
+result = api.domain_update_ns('example.com', nameservers=nameservers)
+# This works for .com domains - nameservers are stored in domain DNS config
+```
+
+2. **Do NOT use `nsset_create` for .com domains** - This will fail with code 3242:
+```python
+# ❌ This will fail for .com domains
+result = api.nsset_create("MY-NSSET", nameservers)  # Error: NSSET is not supported
+```
+
+3. **Check domain info** - Nameservers for .com domains appear in `domain-info` response under `dns.server`:
+```python
+result = api.domain_info('example.com')
+if result['response']['code'] == '1000':
+    domain = result['response']['data']['domain']
+    dns = domain.get('dns', {})
+    ns_list = dns.get('server', [])
+    # Nameservers are stored here, not in separate NSSET
+    for ns in ns_list:
+        print(f"{ns.get('name')}: IPv4={ns.get('addr_ipv4')}, IPv6={ns.get('addr_ipv6')}")
+```
+
+**Key Differences:**
+
+| Feature | .cz domains | .com domains |
+|---------|-------------|--------------|
+| NSSET support | ✅ Yes | ❌ No |
+| `nsset_create` | ✅ Works | ❌ Error 3242 |
+| `domain_update_ns` | ✅ Works (creates NSSET) | ✅ Works (stores in domain DNS) |
+| Nameserver storage | NSSET object | Domain DNS configuration |
+| `domain-info` response | Shows NSSET name | Shows nameservers in `dns.server` |
+
+**Verified:** ✅ `domain_update_ns` works correctly for .com domains despite NSSET limitation
+
 ### Error: "Contact is not available" (Code 3229)
 
 **Cause:** Technical contact handle is invalid or not accessible.

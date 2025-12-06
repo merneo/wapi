@@ -16,7 +16,7 @@ from .logger import get_logger
 try:
     import dns.resolver
     DNS_PYTHON_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     DNS_PYTHON_AVAILABLE = False
 
 # Safe exception tuple even when socket is mocked in tests

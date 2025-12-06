@@ -180,7 +180,7 @@ def _discover_whois_server(domain: str, timeout: int) -> Optional[str]:
                 if server:
                     logger.debug(f"Discovered WHOIS server for {tld}: {server}")
                     return server
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         logger.debug(f"WHOIS server discovery failed: {exc}")
     return None
 
@@ -291,7 +291,7 @@ def cmd_search(args, client: Optional[WedosAPIClient] = None) -> int:
             availability = interpret_api_availability(api_result, args.domain)
             if availability is not None:
                 availability_source = "wapi"
-        except Exception as exc:  # pragma: no cover - defensive
+        except Exception as exc:
             logger.warning(f"WAPI availability lookup failed: {exc}")
 
     # WHOIS lookup if registered or undetermined

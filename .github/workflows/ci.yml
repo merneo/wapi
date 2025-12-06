@@ -142,12 +142,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install safety
+          pip install safety pip-audit
       
       - name: Check for known security vulnerabilities
         run: |
           safety check --file requirements.txt || true
           safety check --file requirements-dev.txt || true
+          pip-audit -r requirements.txt || true
+          pip-audit -r requirements-dev.txt || true
       
       - name: Check for hardcoded secrets
         run: |

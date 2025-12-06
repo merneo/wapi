@@ -1,0 +1,32 @@
+"""
+Constants for WAPI CLI
+
+Defines error codes, exit codes, and other constants used throughout the application.
+"""
+
+# Exit codes
+EXIT_SUCCESS = 0
+EXIT_ERROR = 1
+EXIT_CONFIG_ERROR = 2
+EXIT_AUTH_ERROR = 3
+EXIT_VALIDATION_ERROR = 4
+EXIT_CONNECTION_ERROR = 5
+EXIT_TIMEOUT_ERROR = 6
+
+# API response codes
+API_SUCCESS = "1000"
+API_ASYNC = "1001"
+API_ERROR = "2000"
+
+# Default values
+DEFAULT_CONFIG_FILE = "config.env"
+DEFAULT_TIMEOUT = 30
+DEFAULT_DNS_LOOKUP_TIMEOUT = 5
+DEFAULT_POLL_INTERVAL = 10
+DEFAULT_MAX_POLL_ATTEMPTS = 60
+
+# Logging
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_FILE = None
+MAX_LOG_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+LOG_BACKUP_COUNT = 5

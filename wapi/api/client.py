@@ -5,14 +5,21 @@ Core API client for communicating with WEDOS WAPI.
 Supports both XML and JSON formats.
 """
 
-import requests
 import hashlib
-import xml.etree.ElementTree as ET
 import json
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Callable
+from typing import Any, Callable, Dict, List, Optional
+
+import requests
+
 from .auth import calculate_auth
+from ..exceptions import (
+    WAPIConnectionError,
+    WAPIRequestError,
+    WAPITimeoutError,
+)
 from ..utils.logger import get_logger
 
 
@@ -112,12 +119,8 @@ class WedosAPIClient:
             return result
         except ET.ParseError as e:
             self.logger.error(f"XML parse error: {e}")
-            return {
-                "response": {
-                    "code": "9999",
-                    "result": f"XML Parse Error: {str(e)}"
-                }
-            }
+            from ..exceptions import WAPIRequestError
+            raise WAPIRequestError(f"XML parse error: {e}") from e
     
     def _parse_xml_element(self, element: ET.Element) -> Any:
         """Recursively parse XML element to Python structure"""
@@ -172,9 +175,15 @@ class WedosAPIClient:
                 self.logger.debug(f"HTTP Response status: {response.status_code}")
                 response.raise_for_status()
                 result = response.json()
+            except requests.exceptions.Timeout as e:
+                self.logger.error(f"HTTP request timeout: {e}")
+                raise WAPITimeoutError(f"Request timeout: {e}") from e
+            except requests.exceptions.ConnectionError as e:
+                self.logger.error(f"HTTP connection error: {e}")
+                raise WAPIConnectionError(f"Connection error: {e}") from e
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"HTTP request failed: {e}")
-                raise
+                raise WAPIRequestError(f"Request failed: {e}") from e
             
             # Log response
             resp_code = result.get('response', {}).get('code')
@@ -195,9 +204,15 @@ class WedosAPIClient:
                 self.logger.debug(f"HTTP Response status: {response.status_code}")
                 response.raise_for_status()
                 result = self._parse_xml_response(response.text)
+            except requests.exceptions.Timeout as e:
+                self.logger.error(f"HTTP request timeout: {e}")
+                raise WAPITimeoutError(f"Request timeout: {e}") from e
+            except requests.exceptions.ConnectionError as e:
+                self.logger.error(f"HTTP connection error: {e}")
+                raise WAPIConnectionError(f"Connection error: {e}") from e
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"HTTP request failed: {e}")
-                raise
+                raise WAPIRequestError(f"Request failed: {e}") from e
             
             # Log response
             resp_code = result.get('response', {}).get('code')
@@ -364,9 +379,4 @@ class WedosAPIClient:
         # Timeout
         timeout_msg = f"Polling timeout after {max_attempts} attempts ({max_attempts * interval} seconds)"
         self.logger.error(timeout_msg)
-        return {
-            "response": {
-                "code": "9998",
-                "result": timeout_msg
-            }
-        }
+        raise WAPITimeoutError(timeout_msg)

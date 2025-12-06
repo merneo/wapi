@@ -5,7 +5,8 @@ All validation functions use RFC-compliant standards and academic examples.
 """
 
 import re
-from typing import Tuple, Optional
+from typing import Optional, Tuple
+
 from .logger import get_logger
 
 

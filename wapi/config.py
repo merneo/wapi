@@ -4,11 +4,12 @@ Configuration management for WAPI CLI
 Handles loading configuration from config.env file and environment variables.
 """
 
-from .utils.logger import get_logger
-
 import os
-from typing import Optional, Dict, Tuple
 from pathlib import Path
+from typing import Dict, Optional, Tuple
+
+from .exceptions import WAPIConfigurationError
+from .utils.logger import get_logger
 
 
 def load_config(config_file: str = "config.env") -> Dict[str, str]:
@@ -49,8 +50,12 @@ def load_config(config_file: str = "config.env") -> Dict[str, str]:
                         key = key.strip()
                         value = value.strip().strip('"').strip("'")
                         config[key] = value
+        except (IOError, OSError, PermissionError) as e:
+            logger.warning(f"Could not read config file {config_file}: {e}")
+            raise WAPIConfigurationError(f"Cannot read config file {config_file}: {e}") from e
         except Exception as e:
-            print(f"Warning: Could not read config file {config_file}: {e}")
+            logger.warning(f"Unexpected error reading config file {config_file}: {e}")
+            raise WAPIConfigurationError(f"Error reading config file {config_file}: {e}") from e
     
     # Override with environment variables
     env_vars = ['WAPI_USERNAME', 'WAPI_PASSWORD', 'WAPI_BASE_URL']
@@ -100,9 +105,14 @@ def validate_config(config_file: str = "config.env") -> Tuple[bool, Optional[str
     password = get_config('WAPI_PASSWORD', config_file=config_file)
     
     if not username:
-        return False, "WAPI_USERNAME not set (check config.env or environment variables)"
+        error_msg = "WAPI_USERNAME not set (check config.env or environment variables)"
+        logger.error(error_msg)
+        return False, error_msg
     
     if not password:
-        return False, "WAPI_PASSWORD not set (check config.env or environment variables)"
+        error_msg = "WAPI_PASSWORD not set (check config.env or environment variables)"
+        logger.error(error_msg)
+        return False, error_msg
     
+    logger.debug("Configuration validation successful")
     return True, None

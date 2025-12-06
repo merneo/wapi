@@ -5,13 +5,16 @@ Handles SHA1 hash calculation and timezone-aware authentication.
 """
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple
+
 try:
     import pytz
 except ImportError:
     # Fallback if pytz not available
     pytz = None
+
+from ..utils.logger import get_logger
 
 
 def get_prague_hour() -> str:
@@ -32,7 +35,7 @@ def get_prague_hour() -> str:
     else:
         # Fallback: assume UTC+1 (Prague is UTC+1 in winter, UTC+2 in summer)
         # For production, pytz should be installed
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Simple approximation: UTC+1
         hour = (now.hour + 1) % 24
         return f"{hour:02d}"

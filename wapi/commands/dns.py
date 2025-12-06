@@ -5,20 +5,29 @@ Handles DNS record operations.
 """
 
 import sys
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from ..api.client import WedosAPIClient
+from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR
+from ..exceptions import (
+    WAPIValidationError,
+    WAPIRequestError,
+    WAPITimeoutError,
+)
 from ..utils.formatters import format_output
-from ..utils.validators import validate_domain
 from ..utils.logger import get_logger
+from ..utils.validators import validate_domain
 
 
 def cmd_dns_list(args, client: WedosAPIClient) -> int:
     """Handle dns list command"""
+    logger = get_logger('commands.dns')
     # Validate domain
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     # Get domain info which contains DNS information
     result = client.domain_info(args.domain)
@@ -46,25 +55,27 @@ def cmd_dns_list(args, client: WedosAPIClient) -> int:
             
             logger.info(f"Listed {len(dns_data)} nameserver(s) for {args.domain}")
             print(format_output(dns_data, args.format, headers=['name', 'ipv4', 'ipv6']))
-            return 0
+            return EXIT_SUCCESS
         else:
             logger.warning(f"No DNS information available for {args.domain}")
             print("No DNS information available", file=sys.stderr)
-            return 1
+            raise WAPIRequestError(f"No DNS information available for {args.domain}")
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to list nameservers: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to list nameservers: {error_msg} (code: {code})")
 
 
 def cmd_dns_record_list(args, client: WedosAPIClient) -> int:
     """Handle dns record list command"""
+    logger = get_logger('commands.dns')
     # Validate domain
     is_valid, error = validate_domain(args.domain)
     if not is_valid:
+        logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     # Use dns-rows-list WAPI command
     result = client.call("dns-rows-list", {"domain": args.domain})
@@ -92,12 +103,12 @@ def cmd_dns_record_list(args, client: WedosAPIClient) -> int:
         
         logger.info(f"Listed {len(records)} DNS record(s) for {args.domain}")
         print(format_output(records, args.format, headers=['id', 'name', 'ttl', 'type', 'rdata']))
-        return 0
+        return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to list DNS records: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to list DNS records: {error_msg} (code: {code})")
 
 
 def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
@@ -110,7 +121,7 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
     if not is_valid:
         logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     # Build DNS record data
     record_data = {
@@ -130,7 +141,7 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
         logger.info("DNS record added successfully")
         print("✅ DNS record added successfully")
         print(format_output(response.get('data', {}), args.format))
-        return 0
+        return EXIT_SUCCESS
     elif code == '1001' or code == 1001:
         logger.info("DNS record add started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
@@ -179,21 +190,23 @@ def cmd_dns_record_add(args, client: WedosAPIClient) -> int:
                 logger.info("DNS record added successfully (after polling)")
                 print("✅ DNS record added successfully")
                 print(format_output(final_response, args.format))
-                return 0
+                return EXIT_SUCCESS
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
                 logger.warning(f"DNS add polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
-                return 0
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
-            return 0
+            return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to add DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to add DNS record: {error_msg} (code: {code})")
 
 
 def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
@@ -207,16 +220,18 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
     if not is_valid:
         logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     if not args.id:
+        logger.error("Record ID required")
         print("Error: Record ID required (--id)", file=sys.stderr)
-        return 1
+        raise WAPIValidationError("Record ID required (--id)")
     
     # Check that at least one field is being updated
     if not any([args.name, args.type, args.value, args.ttl]):
+        logger.error("At least one field must be specified for update")
         print("Error: At least one field must be specified for update (--name, --type, --value, or --ttl)", file=sys.stderr)
-        return 1
+        raise WAPIValidationError("At least one field must be specified for update")
     
     # Build update data - WAPI uses dns-row-update command
     update_data = {
@@ -243,7 +258,7 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
         logger.info("DNS record updated successfully")
         print("✅ DNS record updated successfully")
         print(format_output(response.get('data', {}), args.format))
-        return 0
+        return EXIT_SUCCESS
     elif code == '1001' or code == 1001:
         logger.info("DNS record update started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
@@ -297,21 +312,23 @@ def cmd_dns_record_update(args, client: WedosAPIClient) -> int:
                 logger.info("DNS record updated successfully (after polling)")
                 print("✅ DNS record updated successfully")
                 print(format_output(final_response, args.format))
-                return 0
+                return EXIT_SUCCESS
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
                 logger.warning(f"DNS update polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
-                return 0
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
-            return 0
+            return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to update DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to update DNS record: {error_msg} (code: {code})")
 
 
 def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
@@ -324,11 +341,12 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
     if not is_valid:
         logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     if not args.id:
+        logger.error("Record ID required")
         print("Error: Record ID required (--id)", file=sys.stderr)
-        return 1
+        raise WAPIValidationError("Record ID required (--id)")
     
     # Build delete data
     delete_data = {
@@ -344,7 +362,7 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
     if code == '1000' or code == 1000:
         logger.info("DNS record deleted successfully")
         print("✅ DNS record deleted successfully")
-        return 0
+        return EXIT_SUCCESS
     elif code == '1001' or code == 1001:
         logger.info("DNS record delete started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
@@ -388,16 +406,18 @@ def cmd_dns_record_delete(args, client: WedosAPIClient) -> int:
             if final_code in ['1000', 1000]:
                 logger.info("DNS record deleted successfully (after polling)")
                 print("✅ DNS record deleted successfully")
-                return 0
+                return EXIT_SUCCESS
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
                 logger.warning(f"DNS delete polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
-                return 0
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
         else:
-            return 0
+            return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to delete DNS record: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to delete DNS record: {error_msg} (code: {code})")

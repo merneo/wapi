@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: Run tests
+        run: |
+          pytest --cov=wapi --cov-report=term -v
+      
+      - name: Extract version from tag
+        id: tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+      
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.tag.outputs.version }}
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "notes=## Release $VERSION" > $GITHUB_OUTPUT
+            echo "Initial release" >> $GITHUB_OUTPUT
+          else
+            echo "notes=## Release $VERSION" > $GITHUB_OUTPUT
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.tag.outputs.tag }}
+          body: |
+            ${{ steps.release_notes.outputs.notes }}
+            
+            ## Installation
+            
+            ```bash
+            pip install git+https://github.com/merneo/wapi.git@${{ steps.tag.outputs.tag }}
+            ```
+            
+            ## Changes
+            
+            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+          draft: false
+          prerelease: false

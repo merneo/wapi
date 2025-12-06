@@ -1,0 +1,55 @@
+# Include license file
+include LICENSE
+
+# Include README
+include README.md
+
+# Include configuration example
+include config.env.example
+
+# Include requirements
+include requirements.txt
+
+# Include development requirements
+include requirements-dev.txt
+
+# Include pyproject.toml for build configuration
+include pyproject.toml
+
+# Exclude test files from distribution
+global-exclude tests/
+global-exclude test_*.py
+global-exclude *_test.py
+
+# Exclude development files
+global-exclude .git/
+global-exclude .github/
+global-exclude .pytest_cache/
+global-exclude .mypy_cache/
+global-exclude htmlcov/
+global-exclude .coverage
+global-exclude coverage.json
+
+# Exclude IDE files
+global-exclude .vscode/
+global-exclude .idea/
+global-exclude *.swp
+global-exclude *.swo
+
+# Exclude build artifacts
+global-exclude build/
+global-exclude dist/
+global-exclude *.egg-info/
+global-exclude *.egg
+
+# Exclude documentation files (keep only README.md)
+global-exclude *.md
+recursive-exclude *.md README.md
+
+# Exclude CI/CD workflows (not needed in package)
+global-exclude .github/
+
+# Exclude development configuration
+global-exclude .pre-commit-config.yaml
+global-exclude .flake8
+global-exclude Makefile

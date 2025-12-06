@@ -9,10 +9,10 @@ Provides centralized logging configuration with support for:
 """
 
 import logging
-import sys
 import os
-from typing import Optional
+import sys
 from logging.handlers import RotatingFileHandler
+from typing import Optional
 
 
 # Global logger instance
@@ -100,8 +100,10 @@ def setup_logging(
             logger.addHandler(file_handler)
             
             logger.info(f"Logging to file: {log_file}")
-        except Exception as e:
+        except (IOError, OSError, PermissionError) as e:
             logger.warning(f"Could not setup file logging: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error setting up file logging: {e}")
     
     _logger = logger
     return logger

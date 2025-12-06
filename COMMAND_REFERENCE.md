@@ -41,10 +41,21 @@ wapi domain info example.com --format json
 # Using existing NSSET
 wapi domain update-ns example.com --nsset MY-NSSET
 
-# With new nameservers
+# With new nameservers (IPv4 and IPv6)
 wapi domain update-ns example.com \
   --nameserver ns1.example.com:192.0.2.1:2001:db8::1 \
   --nameserver ns2.example.com:192.0.2.2:2001:db8::2
+
+# With IPv4 only (IPv6 auto-discovered)
+wapi domain update-ns example.com \
+  --nameserver ns1.example.com:192.0.2.1 \
+  --nameserver ns2.example.com:192.0.2.2
+# Note: IPv6 addresses are automatically discovered via DNS lookup if available
+
+# Disable IPv6 auto-discovery
+wapi domain update-ns example.com \
+  --nameserver ns1.example.com:192.0.2.1 \
+  --no-ipv6-discovery
 
 # Copy from another domain
 wapi domain update-ns example.com --source-domain example.org
@@ -77,12 +88,27 @@ wapi nsset info MY-NSSET --format json
 
 ### Create NSSET
 ```bash
+# With IPv4 and IPv6
 wapi nsset create MY-NSSET \
   --nameserver ns1.example.com:192.0.2.1:2001:db8::1 \
   --nameserver ns2.example.com:192.0.2.2:2001:db8::2 \
   --tld cz \
   --tech-c MY-CONTACT \
   --wait
+
+# With IPv4 only (IPv6 auto-discovered)
+wapi nsset create MY-NSSET \
+  --nameserver ns1.example.com:192.0.2.1 \
+  --nameserver ns2.example.com:192.0.2.2 \
+  --tld cz \
+  --wait
+# Note: IPv6 addresses are automatically discovered via DNS lookup if available
+
+# Disable IPv6 auto-discovery
+wapi nsset create MY-NSSET \
+  --nameserver ns1.example.com:192.0.2.1 \
+  --tld cz \
+  --no-ipv6-discovery
 ```
 
 ### NSSET Operations (if supported)

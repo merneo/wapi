@@ -3,7 +3,7 @@
 **Complete documentation for the WAPI CLI command-line tool**
 
 **Last Updated:** 2025-01-05  
-**Version:** 0.6.0+  
+**Version:** 0.9.0  
 **Status:** Production-ready CLI tool  
 **Language:** US English  
 **Standards:** RFC 2606 (example.com), RFC 5737 (192.0.2.0/24), RFC 3849 (2001:db8::/32)  
@@ -24,6 +24,7 @@ WAPI CLI is a command-line interface tool for managing WEDOS domains, NSSETs, co
 - ✅ Multiple output formats (table, JSON, XML, YAML)
 - ✅ Sensitive data filtering
 - ✅ Async operation polling with `--wait` flag
+- ✅ IPv6 auto-discovery for nameservers (automatic IPv6 lookup when only IPv4 is provided, can be disabled with `--no-ipv6-discovery`)
 - ✅ Production-ready, tested, and documented
 
 ## Installation
@@ -387,7 +388,9 @@ options:
                         --nameserver)
   --nameserver NAMESERVER
                         Nameserver in format: name:ipv4:ipv6 (can be used
-                        multiple times). IPv6 is optional.
+                        multiple times). IPv6 is optional. If IPv4 is provided
+                        but IPv6 is missing, the CLI will automatically attempt
+                        to discover the IPv6 address via DNS lookup (AAAA record).
   --no-wait             Don't wait for async operation completion (POLL Queue)
 ```
 
@@ -436,7 +439,7 @@ python3 update_domain_ns.py --target-domain example.com \
     --nameserver ns2.example.com:5.6.7.8:2001:db8::2
 ```
 
-**IPv4 Only:**
+**IPv4 Only (IPv6 Auto-Discovery):**
 ```bash
 cd ~/wapi
 python3 update_domain_ns.py --target-domain example.com \
@@ -444,7 +447,32 @@ python3 update_domain_ns.py --target-domain example.com \
     --nameserver ns2.example.com:5.6.7.8
 ```
 
-**Verified:** ✅ Parsing works correctly for both formats
+When you provide only IPv4 addresses, the CLI will automatically attempt to discover IPv6 addresses via DNS lookup:
+1. First, it tries to get the AAAA record for the nameserver hostname
+2. If that fails, it performs a reverse DNS lookup on the IPv4 address and then queries for AAAA records
+3. If an IPv6 address is found and validated, it is automatically added to the nameserver configuration
+4. If IPv6 is not found, the operation continues with IPv4 only (warning message is displayed)
+
+**Disable IPv6 Auto-Discovery:**
+```bash
+cd ~/wapi
+python3 update_domain_ns.py --target-domain example.com \
+    --nameserver ns1.example.com:1.2.3.4 \
+    --no-ipv6-discovery
+```
+
+**Behavior:**
+- ✅ If IPv6 is already provided in the nameserver string, no lookup is performed
+- ✅ If IPv6 is found via DNS lookup, it is automatically added
+- ✅ If IPv6 is not found, a warning is shown but operation continues with IPv4 only
+- ✅ If DNS lookup fails (timeout, network error), a warning is shown but operation continues
+- ✅ All discovered IPv6 addresses are validated before use
+- ✅ Use `--no-ipv6-discovery` to disable automatic lookup
+
+**Verified:** ✅ Parsing works correctly for both formats  
+**Verified:** ✅ IPv6 auto-discovery works when IPv4-only nameservers are provided  
+**Verified:** ✅ IPv6 auto-discovery can be disabled with `--no-ipv6-discovery`  
+**Verified:** ✅ Operation continues gracefully when IPv6 is not found
 
 #### Don't Wait for Async Completion
 
@@ -1172,7 +1200,7 @@ All CLI commands in this wiki have been verified on a production WAPI system:
 **Last Verified:** 2025-01-05  
 **System:** Production WAPI  
 **Python Version:** 3.13.x  
-**CLI Version:** 0.6.0+  
+**CLI Version:** 0.9.0  
 **Status:** All operations functional and production-ready
 
 ---

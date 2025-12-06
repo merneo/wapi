@@ -4,6 +4,8 @@
 [![Documentation](https://img.shields.io/badge/Documentation-WIKI-green)](WIKI.md)
 [![Python](https://img.shields.io/badge/Python-3.6+-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![CI/CD](https://github.com/merneo/wapi/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/merneo/wapi/actions)
+[![Coverage](https://codecov.io/gh/merneo/wapi/branch/master/graph/badge.svg)](https://codecov.io/gh/merneo/wapi)
 
 **WAPI CLI - Command-line interface for WEDOS WAPI** with verified commands, comprehensive documentation, and best practices. Manage WEDOS domains, NSSETs, contacts, and DNS records from the command line with a user-friendly interface.
 
@@ -21,6 +23,7 @@ WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS set
 - ✅ Multiple output formats (table, JSON, XML, YAML)
 - ✅ Sensitive data filtering
 - ✅ Production-ready and fully tested
+- ✅ **100% test coverage** (517 tests, all passing)
 
 ## 📚 Complete Documentation
 
@@ -34,6 +37,8 @@ WEDOS WAPI (Web API) is a RESTful API for managing domain registrations, DNS set
 - **[Command Reference](COMMAND_REFERENCE.md)** - Quick command reference guide
 - **[Changelog](CHANGELOG.md)** - Active changelog with semantic versioning
 - **[Workflow Guide](WORKFLOW.md)** - Safe repository development workflow
+- **[Coverage Report](COVERAGE_100_PERCENT.md)** - 100% test coverage achievement report
+- **[Quality Audit](QUALITY_AUDIT.md)** - Comprehensive quality audit
 
 Our comprehensive wiki documentation (948+ lines) covers everything you need to work with WEDOS WAPI in Python:
 

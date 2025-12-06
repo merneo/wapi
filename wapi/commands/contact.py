@@ -7,6 +7,8 @@ Handles all contact-related operations.
 import sys
 from typing import Dict, Any
 from ..api.client import WedosAPIClient
+from ..constants import EXIT_SUCCESS, EXIT_ERROR
+from ..exceptions import WAPIRequestError
 from ..utils.formatters import format_output
 from ..utils.logger import get_logger
 
@@ -60,17 +62,21 @@ def cmd_contact_info(args, client: WedosAPIClient) -> int:
         # Filter sensitive data
         filtered_contact = filter_sensitive_contact_data(contact)
         
+        logger.info(f"Contact information retrieved successfully for: {args.handle}")
         print(format_output(filtered_contact, args.format))
-        return 0
+        return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
+        logger.error(f"Failed to get contact information: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to get contact information: {error_msg} (code: {code})")
 
 
 def cmd_contact_list(args, client: WedosAPIClient) -> int:
     """Handle contact list command"""
+    logger = get_logger('commands.contact')
     # WAPI may not have direct contact-list command
+    logger.warning("Contact list command not yet implemented")
     print("Error: Contact list command not yet implemented", file=sys.stderr)
     print("WAPI may require a different command for listing contacts", file=sys.stderr)
-    return 1
+    raise WAPIRequestError("Contact list command not yet implemented")

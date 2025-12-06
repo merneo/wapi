@@ -4,13 +4,30 @@ Main CLI parser and command router for WAPI CLI
 Handles command-line argument parsing and routes to appropriate command modules.
 """
 
-import sys
 import argparse
+import sys
 from typing import Optional
-from .config import load_config, validate_config, get_config
+
 from .api.client import WedosAPIClient
+from .config import get_config, load_config, validate_config
+from .constants import (
+    EXIT_ERROR,
+    EXIT_SUCCESS,
+    EXIT_CONFIG_ERROR,
+    EXIT_AUTH_ERROR,
+    EXIT_CONNECTION_ERROR,
+    EXIT_TIMEOUT_ERROR,
+)
+from .exceptions import (
+    WAPIConfigurationError,
+    WAPIAuthenticationError,
+    WAPIConnectionError,
+    WAPITimeoutError,
+    WAPIRequestError,
+    WAPIError,
+)
 from .utils.formatters import format_output
-from .utils.logger import setup_logging, get_logger
+from .utils.logger import get_logger, setup_logging
 
 
 def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
@@ -25,10 +42,15 @@ def get_client(config_file: str = "config.env") -> Optional[WedosAPIClient]:
     """
     logger = get_logger('cli')
     
-    is_valid, error = validate_config(config_file)
-    if not is_valid:
-        logger.error(f"Configuration validation failed: {error}")
-        print(f"Error: {error}", file=sys.stderr)
+    try:
+        is_valid, error = validate_config(config_file)
+        if not is_valid:
+            logger.error(f"Configuration validation failed: {error}")
+            print(f"Error: {error}", file=sys.stderr)
+            return None
+    except Exception as e:
+        logger.error(f"Configuration error: {e}")
+        print(f"Error: Configuration error - {e}", file=sys.stderr)
         return None
     
     username = get_config('WAPI_USERNAME', config_file=config_file)
@@ -60,12 +82,12 @@ def cmd_ping(args, client: WedosAPIClient):
             "result": response.get('result', 'OK')
         }
         print(format_output(output_data, args.format))
-        return 0
+        return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"API connection failed: {error_msg}")
         print(f"Error: {error_msg}", file=sys.stderr)
-        return 1
+        return EXIT_ERROR
 
 
 # Import auth command handlers
@@ -134,9 +156,11 @@ def main():
     update_ns_parser = domain_subparsers.add_parser('update-ns', help='Update domain nameservers')
     update_ns_parser.add_argument('domain', help='Domain name')
     update_ns_parser.add_argument('--nsset', help='Use existing NSSET')
-    update_ns_parser.add_argument('--nameserver', action='append', help='Nameserver (name:ipv4:ipv6)')
+    update_ns_parser.add_argument('--nameserver', action='append', help='Nameserver (name:ipv4:ipv6 or name:ipv4)')
     update_ns_parser.add_argument('--source-domain', help='Copy nameservers from another domain')
     update_ns_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    update_ns_parser.add_argument('--no-ipv6-discovery', action='store_true', 
+                                 help='Disable automatic IPv6 address discovery for nameservers')
     update_ns_parser.set_defaults(func=cmd_domain_update_ns)
     
     # NSSET module
@@ -148,10 +172,12 @@ def main():
     create_parser = nsset_subparsers.add_parser('create', help='Create new NSSET')
     create_parser.add_argument('name', help='NSSET name')
     create_parser.add_argument('--nameserver', action='append', required=True,
-                              help='Nameserver (name:ipv4:ipv6) - can be used multiple times')
+                              help='Nameserver (name:ipv4:ipv6 or name:ipv4) - can be used multiple times')
     create_parser.add_argument('--tld', default='cz', help='Top-level domain (default: cz)')
     create_parser.add_argument('--tech-c', dest='tech_c', help='Technical contact handle')
     create_parser.add_argument('--wait', action='store_true', help='Wait for async completion')
+    create_parser.add_argument('--no-ipv6-discovery', action='store_true',
+                              help='Disable automatic IPv6 address discovery for nameservers')
     create_parser.set_defaults(func=cmd_nsset_create)
     
     nsset_info_parser = nsset_subparsers.add_parser('info', help='Get NSSET information')
@@ -254,27 +280,65 @@ def main():
     # Handle no command
     if not args.module:
         parser.print_help()
-        return 1
+        return EXIT_ERROR
     
     # Ensure format is available in args (for commands that need it)
     if not hasattr(args, 'format'):
         args.format = 'table'
     
     # Get API client
-    client = get_client(args.config)
-    if not client:
-        return 1
+    try:
+        client = get_client(args.config)
+        if not client:
+            return EXIT_CONFIG_ERROR
+    except WAPIConfigurationError as e:
+        logger.error(f"Configuration error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
+        return EXIT_CONFIG_ERROR
     
     # Execute command
     if hasattr(args, 'func'):
-        # Some commands don't need client (config commands)
-        if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
-            return args.func(args)
-        else:
-            return args.func(args, client)
+        try:
+            # Some commands don't need client (config commands)
+            if args.func in [cmd_config_show, cmd_config_validate, cmd_config_set]:
+                return args.func(args)
+            else:
+                return args.func(args, client)
+        except WAPIConfigurationError as e:
+            logger.error(f"Configuration error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_CONFIG_ERROR
+        except WAPIAuthenticationError as e:
+            logger.error(f"Authentication error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_AUTH_ERROR
+        except WAPIConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_CONNECTION_ERROR
+        except WAPITimeoutError as e:
+            logger.error(f"Timeout error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_TIMEOUT_ERROR
+        except WAPIRequestError as e:
+            logger.error(f"API request error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_ERROR
+        except WAPIError as e:
+            logger.error(f"WAPI error: {e}")
+            print(f"Error: {e}", file=sys.stderr)
+            return EXIT_ERROR
+        except KeyboardInterrupt:
+            logger.info("Operation cancelled by user")
+            print("\nOperation cancelled", file=sys.stderr)
+            return EXIT_ERROR
+        except Exception as e:
+            logger.exception(f"Unexpected error: {e}")
+            print(f"Unexpected error: {e}", file=sys.stderr)
+            return EXIT_ERROR
     else:
         print(f"Error: Command not implemented yet", file=sys.stderr)
-        return 1
+        return EXIT_ERROR
 
 
 if __name__ == '__main__':

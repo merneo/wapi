@@ -5,11 +5,19 @@ Handles all domain-related operations.
 """
 
 import sys
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from ..api.client import WedosAPIClient
+from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_VALIDATION_ERROR
+from ..exceptions import (
+    WAPIValidationError,
+    WAPIRequestError,
+    WAPITimeoutError,
+)
+from ..utils.dns_lookup import enhance_nameserver_with_ipv6
 from ..utils.formatters import format_output
-from ..utils.validators import validate_domain
 from ..utils.logger import get_logger
+from ..utils.validators import validate_domain
 
 
 def filter_sensitive_domain_data(domain: Dict[str, Any]) -> Dict[str, Any]:
@@ -75,12 +83,12 @@ def cmd_domain_list(args, client: WedosAPIClient) -> int:
         
         logger.info(f"Listed {len(domain_list)} domain(s)")
         print(format_output(domain_list, args.format, headers=['name', 'status', 'expiration', 'nsset']))
-        return 0
+        return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to list domains: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to list domains: {error_msg} (code: {code})")
 
 
 def cmd_domain_info(args, client: WedosAPIClient) -> int:
@@ -93,7 +101,7 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
     if not is_valid:
         logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     # Get domain information
     result = client.domain_info(args.domain)
@@ -109,12 +117,12 @@ def cmd_domain_info(args, client: WedosAPIClient) -> int:
         
         # Format output
         print(format_output(filtered_domain, args.format))
-        return 0
+        return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to get domain information: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to get domain information: {error_msg} (code: {code})")
 
 
 def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
@@ -130,7 +138,7 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
     if not is_valid:
         logger.warning(f"Invalid domain name: {args.domain} - {error}")
         print(f"Error: Invalid domain name - {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(f"Invalid domain name: {error}")
     
     # Store options for polling
     nsset_name = None
@@ -145,13 +153,40 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
     elif args.nameserver:
         # Parse nameservers
         nameservers = []
+        ipv6_discovery_warnings = []
+        ipv6_discovery_success = []
+        
         for ns_string in args.nameserver:
             is_valid_ns, parsed, error = validate_nameserver(ns_string)
             if not is_valid_ns:
+                logger.warning(f"Invalid nameserver format: {ns_string} - {error}")
                 print(f"Error: Invalid nameserver format - {error}", file=sys.stderr)
-                return 1
+                raise WAPIValidationError(f"Invalid nameserver format: {error}")
+            
+            # Enhance with IPv6 if missing and discovery is enabled
+            if not args.no_ipv6_discovery and parsed.get('addr_ipv4') and not parsed.get('addr_ipv6'):
+                logger.info(f"Attempting to find IPv6 for nameserver {parsed.get('name')}")
+                enhanced, found, warning = enhance_nameserver_with_ipv6(parsed)
+                if found:
+                    logger.info(f"Found IPv6 {enhanced.get('addr_ipv6')} for {enhanced.get('name')}")
+                    ipv6_discovery_success.append(f"{enhanced.get('name')}: {enhanced.get('addr_ipv6')}")
+                    parsed = enhanced
+                elif warning:
+                    ipv6_discovery_warnings.append(warning)
+                    logger.debug(warning)
+            elif args.no_ipv6_discovery and parsed.get('addr_ipv4') and not parsed.get('addr_ipv6'):
+                logger.debug(f"IPv6 discovery disabled, skipping lookup for {parsed.get('name')}")
+            
             nameservers.append(parsed)
         
+        # Print informative messages
+        if ipv6_discovery_success:
+            print(f"ℹ️  IPv6 addresses discovered: {', '.join(ipv6_discovery_success)}", file=sys.stderr)
+        if ipv6_discovery_warnings:
+            for warning in ipv6_discovery_warnings:
+                print(f"⚠️  {warning}", file=sys.stderr)
+        
+        logger.info(f"Updating nameservers for {args.domain} with {len(nameservers)} nameserver(s)")
         result = client.domain_update_ns(args.domain, nameservers=nameservers)
     elif args.source_domain:
         # Get nameservers from source domain
@@ -159,23 +194,27 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
         source_code = source_result.get('response', {}).get('code')
         
         if source_code != '1000' and source_code != 1000:
-            print(f"Error: Could not get information for {args.source_domain}", file=sys.stderr)
-            return 1
+            error_msg = source_result.get('response', {}).get('result', 'Unknown error')
+            logger.error(f"Could not get information for {args.source_domain}: {error_msg}")
+            print(f"Error: Could not get information for {args.source_domain}: {error_msg}", file=sys.stderr)
+            raise WAPIRequestError(f"Could not get information for {args.source_domain}: {error_msg}")
         
         source_domain = source_result.get('response', {}).get('data', {}).get('domain', {})
         dns = source_domain.get('dns', {})
         
         if not isinstance(dns, dict):
+            logger.error(f"No nameservers found for {args.source_domain}")
             print(f"Error: No nameservers found for {args.source_domain}", file=sys.stderr)
-            return 1
+            raise WAPIRequestError(f"No nameservers found for {args.source_domain}")
         
         servers = dns.get('server', [])
         if not isinstance(servers, list):
             servers = [servers]
         
         if not servers:
+            logger.error(f"No nameservers found for {args.source_domain}")
             print(f"Error: No nameservers found for {args.source_domain}", file=sys.stderr)
-            return 1
+            raise WAPIRequestError(f"No nameservers found for {args.source_domain}")
         
         # Extract nameservers and replace domain in nameserver names
         nameservers = []
@@ -191,17 +230,33 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 else:
                     new_ns_name = ns_name
                 
-                nameservers.append({
+                ns_dict = {
                     'name': new_ns_name,
                     'addr_ipv4': server.get('addr_ipv4', ''),
                     'addr_ipv6': server.get('addr_ipv6', '')
-                })
+                }
+                
+                # Enhance with IPv6 if missing and discovery is enabled
+                if not args.no_ipv6_discovery and ns_dict.get('addr_ipv4') and not ns_dict.get('addr_ipv6'):
+                    logger.info(f"Attempting to find IPv6 for nameserver {new_ns_name}")
+                    enhanced, found, warning = enhance_nameserver_with_ipv6(ns_dict)
+                    if found:
+                        logger.info(f"Found IPv6 {enhanced.get('addr_ipv6')} for {new_ns_name}")
+                        ns_dict = enhanced
+                    elif warning:
+                        logger.debug(warning)
+                
+                nameservers.append(ns_dict)
         
+        # Store source_domain for completion check
+        # Note: If nameservers list ends up empty (shouldn't happen due to validation),
+        # the completion check will use source_domain to verify nameservers match
         source_domain = args.source_domain
         result = client.domain_update_ns(args.domain, nameservers=nameservers)
     else:
+        logger.error("Must specify --nsset, --nameserver, or --source-domain")
         print("Error: Must specify --nsset, --nameserver, or --source-domain", file=sys.stderr)
-        return 1
+        raise WAPIValidationError("Must specify --nsset, --nameserver, or --source-domain")
     
     # Check result
     response = result.get('response', {})
@@ -211,7 +266,7 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
         logger.info("Nameservers updated successfully")
         print("✅ Nameservers updated successfully")
         print(format_output(response, args.format))
-        return 0
+        return EXIT_SUCCESS
     elif code == '1001' or code == 1001:
         logger.info("Operation started (asynchronous)")
         print("⚠️  Operation started (asynchronous)")
@@ -232,10 +287,12 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 # Check if NSSET matches what we tried to set
                 if nsset_name:
                     return current_nsset == nsset_name
-                elif nameservers:
+                elif nameservers and len(nameservers) > 0:
                     # For new nameservers, check if domain has any NSSET assigned
                     return bool(current_nsset)
                 elif source_domain:
+                    # For source domain copy, check if nameservers match
+                    # This branch is used when nameservers list is empty but source_domain is set
                     # For source domain copy, check if nameservers match
                     source_result = client.domain_info(source_domain)
                     if source_result.get('response', {}).get('code') in ['1000', 1000]:
@@ -269,18 +326,21 @@ def cmd_domain_update_ns(args, client: WedosAPIClient) -> int:
                 logger.info("Nameservers updated successfully (after polling)")
                 print("✅ Nameservers updated successfully")
                 print(format_output(final_response, args.format))
-                return 0
+                return EXIT_SUCCESS
             else:
                 error_msg = final_response.get('result', 'Timeout or error')
                 logger.warning(f"Polling completed with warning: {error_msg}")
                 print(f"⚠️  {error_msg}", file=sys.stderr)
                 print(format_output(response, args.format))
-                return 0
+                # Check if it's a timeout
+                if 'timeout' in error_msg.lower() or final_code == '9998':
+                    raise WAPITimeoutError(f"Polling timeout: {error_msg}")
+                return EXIT_SUCCESS
         else:
             print(format_output(response, args.format))
-            return 0
+            return EXIT_SUCCESS
     else:
         error_msg = response.get('result', 'Unknown error')
         logger.error(f"Failed to update nameservers: {error_msg} (code: {code})")
         print(f"Error ({code}): {error_msg}", file=sys.stderr)
-        return 1
+        raise WAPIRequestError(f"Failed to update nameservers: {error_msg} (code: {code})")

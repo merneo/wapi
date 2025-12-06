@@ -6,19 +6,22 @@ Supports multiple output formats: table, JSON, XML, YAML
 
 import json
 from typing import Any, Dict, List
-from .logger import get_logger
+
+try:
+    import yaml
+
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
 
 try:
     from tabulate import tabulate
+
     TABULATE_AVAILABLE = True
 except ImportError:
     TABULATE_AVAILABLE = False
 
-try:
-    import yaml
-    YAML_AVAILABLE = True
-except ImportError:
-    YAML_AVAILABLE = False
+from .logger import get_logger
 
 
 def format_table(data: Any, headers: List[str] = None) -> str:
@@ -144,6 +147,9 @@ def format_output(data: Any, format_type: str = "table", headers: List[str] = No
         
         logger.debug(f"Output formatted successfully ({len(result)} characters)")
         return result
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as e:
         logger.error(f"Failed to format output: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error formatting output: {e}")
         raise

@@ -11,6 +11,14 @@ from getpass import getpass
 from typing import Optional
 from ..api.client import WedosAPIClient
 from ..config import load_config, get_config, validate_config
+from ..constants import EXIT_SUCCESS, EXIT_ERROR, EXIT_AUTH_ERROR, EXIT_CONFIG_ERROR
+from ..exceptions import (
+    WAPIAuthenticationError,
+    WAPIConfigurationError,
+    WAPIConnectionError,
+    WAPIRequestError,
+    WAPIValidationError,
+)
 from ..utils.formatters import format_output
 from ..utils.logger import get_logger
 
@@ -34,7 +42,7 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         if not username:
             logger.error("Username cannot be empty")
             print("Error: Username cannot be empty", file=sys.stderr)
-            return 1
+            return EXIT_ERROR
     
     # Get password
     if args.password:
@@ -46,7 +54,7 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         if not password:
             logger.error("Password cannot be empty")
             print("Error: Password cannot be empty", file=sys.stderr)
-            return 1
+            return EXIT_ERROR
     
     # Validate credentials format
     from ..api.auth import validate_credentials
@@ -54,7 +62,7 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
     if not is_valid:
         logger.warning(f"Invalid credential format: {error}")
         print(f"Error: {error}", file=sys.stderr)
-        return 1
+        raise WAPIValidationError(error)
     
     # Test connection with provided credentials
     logger.info("Testing credentials with WAPI")
@@ -70,14 +78,18 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
             error_msg = response.get('result', 'Unknown error')
             logger.error(f"Authentication failed: {error_msg} (code: {code})")
             print(f"❌ Authentication failed: {error_msg}", file=sys.stderr)
-            return 1
+            raise WAPIAuthenticationError(f"Authentication failed: {error_msg}")
         
         logger.info("Credentials validated successfully")
         print("✅ Connection successful")
-    except Exception as e:
-        logger.error(f"Failed to test connection: {e}")
+    except (WAPIConnectionError, WAPIRequestError) as e:
+        logger.error(f"Connection test failed: {e}")
         print(f"❌ Connection test failed: {e}", file=sys.stderr)
-        return 1
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during connection test: {e}")
+        print(f"❌ Connection test failed: {e}", file=sys.stderr)
+        raise WAPIConnectionError(f"Connection test failed: {e}") from e
     
     # Save credentials to config file
     logger.info(f"Saving credentials to {config_file}")
@@ -126,11 +138,15 @@ def cmd_auth_login(args, client: Optional[WedosAPIClient] = None) -> int:
         print(f"   Username: {username}")
         print(f"   Password: {'*' * len(password)}")
         
-        return 0
-    except Exception as e:
+        return EXIT_SUCCESS
+    except (IOError, OSError, PermissionError) as e:
         logger.error(f"Failed to save credentials: {e}")
         print(f"Error: Could not save credentials: {e}", file=sys.stderr)
-        return 1
+        raise WAPIConfigurationError(f"Cannot write to config file {config_file}: {e}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error saving credentials: {e}")
+        print(f"Error: Could not save credentials: {e}", file=sys.stderr)
+        return EXIT_ERROR
 
 
 def cmd_auth_logout(args, client: Optional[WedosAPIClient] = None) -> int:
@@ -143,7 +159,7 @@ def cmd_auth_logout(args, client: Optional[WedosAPIClient] = None) -> int:
     if not config_file.exists():
         logger.warning(f"Config file does not exist: {config_file}")
         print(f"⚠️  Config file {config_file} does not exist", file=sys.stderr)
-        return 0
+        return EXIT_SUCCESS
     
     # Read existing config
     config = {}
@@ -160,7 +176,7 @@ def cmd_auth_logout(args, client: Optional[WedosAPIClient] = None) -> int:
     except Exception as e:
         logger.error(f"Could not read config file: {e}")
         print(f"Error: Could not read config file: {e}", file=sys.stderr)
-        return 1
+        raise WAPIConfigurationError(f"Cannot read config file {config_file}: {e}") from e
     
     # Remove credentials
     if 'WAPI_USERNAME' in config:
@@ -179,11 +195,15 @@ def cmd_auth_logout(args, client: Optional[WedosAPIClient] = None) -> int:
         
         logger.info("Credentials removed successfully")
         print(f"✅ Credentials removed from {config_file}")
-        return 0
-    except Exception as e:
+        return EXIT_SUCCESS
+    except (IOError, OSError, PermissionError) as e:
         logger.error(f"Failed to remove credentials: {e}")
         print(f"Error: Could not update config file: {e}", file=sys.stderr)
-        return 1
+        raise WAPIConfigurationError(f"Cannot write to config file {config_file}: {e}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error removing credentials: {e}")
+        print(f"Error: Could not update config file: {e}", file=sys.stderr)
+        return EXIT_ERROR
 
 
 def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
@@ -207,7 +227,7 @@ def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
         print("⚠️  Not logged in")
         print(format_output(status_data, args.format))
         print("\nTo login, run: wapi auth login", file=sys.stderr)
-        return 1
+        return EXIT_AUTH_ERROR
     
     # Test connection
     logger.debug("Testing connection with configured credentials")
@@ -229,7 +249,7 @@ def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
             logger.warning(f"Authentication test failed: {error_msg}")
             print(f"⚠️  Logged in but authentication test failed: {error_msg}")
             status_data['error'] = error_msg
-    except Exception as e:
+    except (WAPIConnectionError, WAPIRequestError) as e:
         logger.error(f"Failed to test authentication: {e}")
         status_data['connection'] = 'Error'
         status_data['authenticated'] = False
@@ -237,4 +257,4 @@ def cmd_auth_status(args, client: Optional[WedosAPIClient] = None) -> int:
         print(f"❌ Error testing authentication: {e}", file=sys.stderr)
     
     print(format_output(status_data, args.format))
-    return 0 if status_data.get('authenticated') else 1
+    return EXIT_SUCCESS if status_data.get('authenticated') else EXIT_AUTH_ERROR

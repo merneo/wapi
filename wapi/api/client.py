@@ -38,7 +38,7 @@ class IPv4HTTPAdapter(HTTPAdapter):
             urllib3_connection._original_create_connection = urllib3_connection.create_connection
         
         def patched_create_connection(address, *args, **kwargs):
-            """Force IPv4 by resolving to IPv4 address first"""
+            """Force IPv4 by resolving to IPv4 address first and binding to IPv4 source"""
             host, port = address
             import logging
             logger = logging.getLogger('wapi.api.client')
@@ -55,7 +55,31 @@ class IPv4HTTPAdapter(HTTPAdapter):
             except (socket.gaierror, OSError, TypeError) as e:
                 logger.warning(f"IPv4-only mode: Could not resolve {host} to IPv4: {e}")
             
-            # Use original create_connection but with IPv4 address
+            # Try to get IPv4 source address and bind to it
+            try:
+                # Get local IPv4 addresses
+                local_addrinfo = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM)
+                if local_addrinfo:
+                    # Use first non-loopback IPv4 address as source
+                    for addr in local_addrinfo:
+                        local_ip = addr[4][0]
+                        if not local_ip.startswith('127.'):
+                            # Create socket with IPv4 source binding
+                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            try:
+                                sock.bind((local_ip, 0))  # Bind to IPv4 source address
+                                sock.settimeout(kwargs.get('timeout', 30))
+                                sock.connect(address)
+                                logger.info(f"IPv4-only mode: Connected via IPv4 source {local_ip}")
+                                return sock
+                            except (OSError, socket.error) as e:
+                                sock.close()
+                                logger.debug(f"IPv4-only mode: Failed to bind to {local_ip}: {e}")
+                                continue
+            except Exception as e:
+                logger.debug(f"IPv4-only mode: Could not bind to IPv4 source: {e}")
+            
+            # Fall back to original method (but still with IPv4 address)
             return urllib3_connection._original_create_connection(address, *args, **kwargs)
         
         urllib3_connection.create_connection = patched_create_connection

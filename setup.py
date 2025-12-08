@@ -66,7 +66,7 @@ setup(
             "pytest>=7.0.0,<8.0.0",
             "pytest-cov>=4.0.0,<5.0.0",
             "pytest-mock>=3.10.0,<4.0.0",
-            "pre-commit>=3.0.0,<4.0.0",
+            "pre-commit>=3.0.0,<5.0.0",
         ],
     },
     entry_points={
